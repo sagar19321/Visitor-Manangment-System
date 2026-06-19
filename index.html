@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>VisitorOS — Visitor Management System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Lexend:wght@600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-thumb { background: #D5DCEA; border-radius: 8px; }
+  select { font-family: inherit; }
+  button:focus-visible, input:focus-visible, select:focus-visible {
+    outline: 2px solid #1E4FD9; outline-offset: 1px;
+  }
+  button { font-family: inherit; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" data-presets="react">
+const { useState, useMemo, useEffect } = React;
+
+/* ---------- Icon helper: self-contained inline SVG (no external icon library needed) ---------- */
+const ICON_PATHS = {
+  UserCheck: ["M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2", "M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8", "m16 11 2 2 4-4"],
+  Briefcase: ["M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16", "M3 8h18v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z", "M3 13h18"],
+  FileText: ["M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5z", "M14 2v6h6", "M8 13h8", "M8 17h8", "M8 9h2"],
+  Truck: ["M14 18V6a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h2", "M14 9h4l4 4v4a1 1 0 0 1-1 1h-2", "M5 18a2 2 0 1 0 4 0 2 2 0 1 0-4 0", "M17 18a2 2 0 1 0 4 0 2 2 0 1 0-4 0"],
+  Users: ["M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2", "M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8", "M22 21v-2a4 4 0 0 0-3-3.87", "M16 3.13a4 4 0 0 1 0 7.75"],
+  ArrowUpRight: ["M7 17 17 7", "M7 7h10v10"],
+  ArrowDownRight: ["M7 7l10 10", "M17 7v10H7"],
+  Building2: ["M6 22V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v18", "M2 22h20", "M6 12H4a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h2", "M18 12h2a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1h-2", "M10 6h4", "M10 10h4", "M10 14h4", "M10 18h4"],
+  X: ["M18 6 6 18", "M6 6l12 12"],
+  Mail: ["M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2", "m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"],
+  Lock: ["M19 11H5a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2", "M7 11V7a5 5 0 0 1 10 0v4"],
+  Eye: ["M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7", "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6"],
+  EyeOff: ["M9.9 4.24A9.1 9.1 0 0 1 12 4c6.5 0 10 7 10 7a13.5 13.5 0 0 1-2.07 2.94", "M6.1 6.1A14.5 14.5 0 0 0 2 11s3.5 7 10 7a9 9 0 0 0 4.17-1.06", "M9.5 9.5a3 3 0 0 0 4 4", "M2 2l20 20"],
+  LayoutDashboard: ["M3 3h7v7H3z", "M14 3h7v7h-7z", "M14 14h7v7h-7z", "M3 14h7v7H3z"],
+  History: ["M3 3v5h5", "M3.05 13a9 9 0 1 0 2.13-7.36L3 8", "M12 7v5l4 2"],
+  ShieldAlert: ["M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10", "M12 8v4", "M12 16h.01"],
+  BarChart3: ["M3 3v18h18", "M18 17V9", "M13 17V5", "M8 17v-3"],
+  LogOut: ["M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4", "M16 17l5-5-5-5", "M21 12H9"],
+  Search: ["M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16", "m21 21-4.3-4.3"],
+  Phone: ["M13.83 16.7a2 2 0 0 1-2.18.45 12.7 12.7 0 0 1-7.8-7.8 2 2 0 0 1 .45-2.18l1.8-1.8a1.5 1.5 0 0 1 2.2.16l1.3 1.74a1.5 1.5 0 0 1-.13 1.95l-.7.7a9 9 0 0 0 4.4 4.4l.7-.7a1.5 1.5 0 0 1 1.95-.13l1.74 1.3a1.5 1.5 0 0 1 .16 2.2z"],
+  Clock: ["M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20", "M12 6v6l4 2"],
+  UserPlus: ["M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2", "M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8", "M19 8v6", "M22 11h-6"],
+  CheckCircle2: ["M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20", "m9 12 2 2 4-4"],
+  Camera: ["M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z", "M12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8"],
+};
+
+function Icon({ name, size = 16, color = "currentColor", style = {} }) {
+  const paths = ICON_PATHS[name] || ICON_PATHS["CheckCircle2"];
+  return (
+    <svg
+      width={size} height={size} viewBox="0 0 24 24" fill="none"
+      stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+      style={{ display: "block", flexShrink: 0, ...style }}
+    >
+      {paths.map((d, i) => <path key={i} d={d} />)}
+    </svg>
+  );
+}
+
+/* ---------- Design tokens ---------- */
+const COLORS = {
+  navy: "#0B1E3D",
+  navyLight: "#142B52",
+  royal: "#1E4FD9",
+  royalDark: "#163CAD",
+  sky: "#4F8FFF",
+  slate: "#5B6B85",
+  ice: "#F4F7FC",
+  amber: "#F5A623",
+  success: "#1F9D6D",
+  danger: "#D64545",
+};
+
+const VISIT_TYPES = [
+  { id: "guest", label: "Guest", icon: "UserCheck", color: COLORS.royal },
+  { id: "vendor", label: "Vendor", icon: "Briefcase", color: COLORS.amber },
+  { id: "interview", label: "Interview", icon: "FileText", color: "#7A4FE8" },
+  { id: "delivery", label: "Delivery", icon: "Truck", color: COLORS.success },
+];
+
+const DEPARTMENTS = ["Operations", "Human Resources", "Finance", "Engineering", "Sales", "Administration"];
+
+const HOSTS = [
+  { id: "h1", name: "Anil Deshmukh", dept: "Operations", phone: "+91 98220 11223" },
+  { id: "h2", name: "Priya Naik", dept: "Human Resources", phone: "+91 98220 33445" },
+  { id: "h3", name: "Rahul Kulkarni", dept: "Finance", phone: "+91 98220 55667" },
+  { id: "h4", name: "Sneha Patil", dept: "Engineering", phone: "+91 98220 77889" },
+  { id: "h5", name: "Vikram Joshi", dept: "Sales", phone: "+91 98220 99001" },
+];
+
+function fmtTime(d) {
+  return d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+}
+function fmtDate(d) {
+  return d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+}
+function minutesBetween(a, b) {
+  return Math.round((b - a) / 60000);
+}
+function durationLabel(mins) {
+  if (mins < 60) return `${mins}m`;
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return `${h}h ${m}m`;
+}
+
+function seedVisits() {
+  const now = new Date();
+  const mk = (offsetHrs, durMins, name, phone, type, hostId, purpose, status, company) => {
+    const checkIn = new Date(now.getTime() - offsetHrs * 3600000);
+    const checkOut = status === "checked-out" ? new Date(checkIn.getTime() + durMins * 60000) : null;
+    return {
+      id: "v" + Math.random().toString(36).slice(2, 9),
+      name, phone, company,
+      type, hostId, purpose, status,
+      checkIn, checkOut,
+      photo: null,
+      badge: "VM-" + Math.floor(1000 + Math.random() * 9000),
+      blacklisted: false,
+    };
+  };
+  return [
+    mk(0.3, 0, "Suresh Kale", "+91 90220 11111", "guest", "h1", "Vendor contract discussion", "checked-in", "Kale Traders"),
+    mk(1.1, 0, "Megha Shinde", "+91 90220 22222", "interview", "h2", "Interview - Sr. Analyst", "checked-in", "—"),
+    mk(2.4, 45, "Omkar Pawar", "+91 90220 33333", "delivery", "h3", "Office stationery delivery", "checked-out", "Speedy Logistics"),
+    mk(4.0, 38, "Asha Bhosale", "+91 90220 44444", "guest", "h4", "Client demo meeting", "checked-out", "NorthStar Pvt Ltd"),
+    mk(5.2, 22, "Ganesh More", "+91 90220 55555", "vendor", "h1", "AMC service visit", "checked-out", "CoolTech Services"),
+    mk(23.5, 50, "Rutuja Sawant", "+91 90220 66666", "interview", "h2", "Interview - HR Executive", "checked-out", "—"),
+    mk(25.0, 30, "Nitin Jadhav", "+91 90220 77777", "guest", "h5", "Partnership discussion", "checked-out", "Jadhav & Co"),
+    mk(48.0, 40, "Komal Gaikwad", "+91 90220 88888", "delivery", "h3", "Courier - documents", "checked-out", "BlueDart"),
+  ];
+}
+
+/* ---------- Reusable UI ---------- */
+function Badge({ children, tone = "royal" }) {
+  const map = {
+    royal: { bg: "rgba(30,79,217,0.1)", fg: COLORS.royal },
+    success: { bg: "rgba(31,157,109,0.1)", fg: COLORS.success },
+    amber: { bg: "rgba(245,166,35,0.12)", fg: "#9c6710" },
+    danger: { bg: "rgba(214,69,69,0.1)", fg: COLORS.danger },
+    slate: { bg: "rgba(91,107,133,0.12)", fg: COLORS.slate },
+  };
+  const c = map[tone] || map.royal;
+  return (
+    <span style={{
+      background: c.bg, color: c.fg, fontWeight: 600, fontSize: "0.72rem",
+      padding: "3px 9px", borderRadius: "999px", display: "inline-flex",
+      alignItems: "center", gap: "4px", letterSpacing: "0.02em", whiteSpace: "nowrap",
+    }}>
+      {children}
+    </span>
+  );
+}
+
+function TypeIcon({ type, size = 14 }) {
+  const t = VISIT_TYPES.find((x) => x.id === type) || VISIT_TYPES[0];
+  return <Icon name={t.icon} size={size} color={t.color} />;
+}
+
+function StatCard({ label, value, delta, iconName, accent }) {
+  return (
+    <div style={{
+      background: "#fff", borderRadius: "16px", padding: "20px 22px",
+      boxShadow: "0 1px 2px rgba(11,30,61,0.06), 0 8px 24px -16px rgba(11,30,61,0.12)",
+      border: "1px solid rgba(11,30,61,0.06)", flex: 1, minWidth: "200px",
+      position: "relative", overflow: "hidden",
+    }}>
+      <div style={{
+        position: "absolute", top: -20, right: -20, width: 90, height: 90,
+        borderRadius: "50%", background: accent, opacity: 0.08,
+      }} />
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+        <div>
+          <div style={{ fontSize: "0.78rem", color: COLORS.slate, fontWeight: 600, marginBottom: 6 }}>{label}</div>
+          <div style={{ fontSize: "1.9rem", fontWeight: 800, color: COLORS.navy, letterSpacing: "-0.02em" }}>{value}</div>
+        </div>
+        <div style={{
+          width: 40, height: 40, borderRadius: "11px", background: accent + "1A",
+          display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+        }}>
+          <Icon name={iconName} size={19} color={accent} />
+        </div>
+      </div>
+      {delta != null && (
+        <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 4, fontSize: "0.76rem", fontWeight: 600, color: delta >= 0 ? COLORS.success : COLORS.danger }}>
+          <Icon name={delta >= 0 ? "ArrowUpRight" : "ArrowDownRight"} size={13} />
+          {Math.abs(delta)}% vs yesterday
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Avatar({ name, size = 38 }) {
+  const initials = name.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase();
+  const hue = useMemo(() => {
+    let h = 0;
+    for (let i = 0; i < name.length; i++) h = (h + name.charCodeAt(i) * 7) % 360;
+    return h;
+  }, [name]);
+  return (
+    <div style={{
+      width: size, height: size, borderRadius: "50%", flexShrink: 0,
+      background: `linear-gradient(135deg, hsl(${hue},65%,45%), hsl(${hue + 30},70%,38%))`,
+      color: "#fff", display: "flex", alignItems: "center", justifyContent: "center",
+      fontWeight: 700, fontSize: size * 0.36, letterSpacing: "0.02em",
+    }}>
+      {initials}
+    </div>
+  );
+}
+
+function Modal({ title, subtitle, onClose, children, width = 560 }) {
+  return (
+    <div style={{
+      position: "fixed", inset: 0, background: "rgba(11,30,61,0.55)",
+      backdropFilter: "blur(3px)", display: "flex", alignItems: "center",
+      justifyContent: "center", zIndex: 100, padding: 20,
+    }} onClick={onClose}>
+      <div style={{
+        background: "#fff", borderRadius: "20px", width: "100%", maxWidth: width,
+        maxHeight: "88vh", overflowY: "auto", boxShadow: "0 24px 60px -10px rgba(11,30,61,0.35)",
+      }} onClick={(e) => e.stopPropagation()}>
+        <div style={{
+          padding: "22px 26px", borderBottom: "1px solid #EEF1F7",
+          display: "flex", justifyContent: "space-between", alignItems: "flex-start",
+          position: "sticky", top: 0, background: "#fff", borderRadius: "20px 20px 0 0", zIndex: 2,
+        }}>
+          <div>
+            <div style={{ fontSize: "1.15rem", fontWeight: 800, color: COLORS.navy }}>{title}</div>
+            {subtitle && <div style={{ fontSize: "0.82rem", color: COLORS.slate, marginTop: 3 }}>{subtitle}</div>}
+          </div>
+          <button onClick={onClose} style={{
+            border: "none", background: "#F4F7FC", borderRadius: "10px", width: 34, height: 34,
+            display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: COLORS.slate,
+          }}>
+            <Icon name="X" size={17} />
+          </button>
+        </div>
+        <div style={{ padding: "22px 26px" }}>{children}</div>
+      </div>
+    </div>
+  );
+}
+
+function FieldLabel({ children, required }) {
+  return (
+    <label style={{ fontSize: "0.78rem", fontWeight: 700, color: COLORS.navy, marginBottom: 6, display: "block" }}>
+      {children} {required && <span style={{ color: COLORS.danger }}>*</span>}
+    </label>
+  );
+}
+
+const inputStyle = {
+  width: "100%", padding: "11px 13px", borderRadius: "10px", border: "1.5px solid #E3E8F2",
+  fontSize: "0.9rem", outline: "none", color: COLORS.navy, background: "#FAFBFD",
+  boxSizing: "border-box", fontFamily: "inherit",
+};
+
+function TextField({ label, required, ...props }) {
+  return (
+    <div style={{ marginBottom: 16 }}>
+      <FieldLabel required={required}>{label}</FieldLabel>
+      <input style={inputStyle} {...props} />
+    </div>
+  );
+}
+
+function SelectField({ label, required, children, ...props }) {
+  return (
+    <div style={{ marginBottom: 16 }}>
+      <FieldLabel required={required}>{label}</FieldLabel>
+      <select style={{ ...inputStyle, appearance: "none", cursor: "pointer" }} {...props}>
+        {children}
+      </select>
+    </div>
+  );
+}
+
+function CheckInModal({ onClose, onSubmit, blacklist }) {
+  const [form, setForm] = useState({
+    name: "", phone: "", company: "", type: "guest", hostId: HOSTS[0].id, purpose: "",
+  });
+  const [photoTaken, setPhotoTaken] = useState(false);
+  const [error, setError] = useState("");
+
+  const isBlacklisted = blacklist.some(
+    (b) => b.phone.replace(/\s/g, "") === form.phone.replace(/\s/g, "") && form.phone.length > 6
+  );
+
+  function submit() {
+    if (!form.name.trim() || !form.phone.trim() || !form.purpose.trim()) {
+      setError("Please fill in name, phone, and purpose.");
+      return;
+    }
+    if (isBlacklisted) {
+      setError("This visitor is on the blacklist. Please contact the admin.");
+      return;
+    }
+    onSubmit(form);
+  }
+
+  return (
+    <Modal title="New Visitor Check-in" subtitle="Fill in the visitor details to check in" onClose={onClose}>
+      {isBlacklisted && (
+        <div style={{
+          background: "rgba(214,69,69,0.08)", border: "1px solid rgba(214,69,69,0.25)",
+          borderRadius: 10, padding: "10px 14px", marginBottom: 16, display: "flex",
+          gap: 10, alignItems: "flex-start", color: COLORS.danger, fontSize: "0.84rem", fontWeight: 600,
+        }}>
+          <Icon name="ShieldAlert" size={17} style={{ marginTop: 1, flexShrink: 0 }} />
+          This number was found on the blacklist. Admin approval is required before check-in.
+        </div>
+      )}
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+        <TextField label="Visitor Name" required placeholder="e.g. Suresh Kale" value={form.name}
+          onChange={(e) => setForm({ ...form, name: e.target.value })} />
+        <TextField label="Phone Number" required placeholder="+91 90000 00000" value={form.phone}
+          onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+      </div>
+
+      <TextField label="Company / Organisation" placeholder="e.g. Kale Traders (optional)" value={form.company}
+        onChange={(e) => setForm({ ...form, company: e.target.value })} />
+
+      <div style={{ marginBottom: 16 }}>
+        <FieldLabel required>Visit Type</FieldLabel>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          {VISIT_TYPES.map((t) => {
+            const active = form.type === t.id;
+            return (
+              <button key={t.id} onClick={() => setForm({ ...form, type: t.id })} style={{
+                flex: "1 1 auto", display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                padding: "10px 12px", borderRadius: 10, cursor: "pointer", fontSize: "0.82rem", fontWeight: 700,
+                border: active ? `1.5px solid ${t.color}` : "1.5px solid #E3E8F2",
+                background: active ? t.color + "14" : "#FAFBFD", color: active ? t.color : COLORS.slate,
+                transition: "all 0.15s",
+              }}>
+                <Icon name={t.icon} size={15} /> {t.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+        <SelectField label="Host / Employee" required value={form.hostId}
+          onChange={(e) => setForm({ ...form, hostId: e.target.value })}>
+          {HOSTS.map((h) => <option key={h.id} value={h.id}>{h.name} — {h.dept}</option>)}
+        </SelectField>
+        <TextField label="Purpose of Visit" required placeholder="e.g. Meeting, Delivery" value={form.purpose}
+          onChange={(e) => setForm({ ...form, purpose: e.target.value })} />
+      </div>
+
+      <div style={{ marginBottom: 16 }}>
+        <FieldLabel>Visitor Photo</FieldLabel>
+        <button onClick={() => setPhotoTaken(!photoTaken)} style={{
+          width: "100%", padding: "16px", borderRadius: 10, border: "1.5px dashed #C9D3E5",
+          background: photoTaken ? "rgba(31,157,109,0.06)" : "#FAFBFD", cursor: "pointer",
+          display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+          color: photoTaken ? COLORS.success : COLORS.slate, fontWeight: 600, fontSize: "0.85rem",
+        }}>
+          {photoTaken ? (<><Icon name="CheckCircle2" size={17} /> Photo captured</>) : (<><Icon name="Camera" size={17} /> Capture via webcam</>)}
+        </button>
+      </div>
+
+      {error && <div style={{ color: COLORS.danger, fontSize: "0.82rem", fontWeight: 600, marginBottom: 12 }}>{error}</div>}
+
+      <div style={{ display: "flex", gap: 10, marginTop: 6 }}>
+        <button onClick={onClose} style={{
+          flex: 1, padding: "12px", borderRadius: 10, border: "1.5px solid #E3E8F2",
+          background: "#fff", color: COLORS.slate, fontWeight: 700, cursor: "pointer", fontSize: "0.88rem",
+        }}>Cancel</button>
+        <button onClick={submit} disabled={isBlacklisted} style={{
+          flex: 2, padding: "12px", borderRadius: 10, border: "none",
+          background: isBlacklisted ? "#C9D3E5" : COLORS.royal, color: "#fff", fontWeight: 700,
+          cursor: isBlacklisted ? "not-allowed" : "pointer", fontSize: "0.88rem",
+          boxShadow: isBlacklisted ? "none" : "0 8px 20px -6px rgba(30,79,217,0.5)",
+        }}>Check-in Visitor</button>
+      </div>
+    </Modal>
+  );
+}
+
+function DetailRow({ iconName, label, value }) {
+  return (
+    <div>
+      <div style={{ fontSize: "0.72rem", color: COLORS.slate, fontWeight: 700, marginBottom: 4, display: "flex", alignItems: "center", gap: 5 }}>
+        <Icon name={iconName} size={12} /> {label.toUpperCase()}
+      </div>
+      <div style={{ fontSize: "0.88rem", color: COLORS.navy, fontWeight: 600 }}>{value}</div>
+    </div>
+  );
+}
+
+function VisitorDetailModal({ visit, host, onClose, onCheckout, onBlacklist }) {
+  const t = VISIT_TYPES.find((x) => x.id === visit.type);
+  return (
+    <Modal title="Visitor Details" onClose={onClose} width={460}>
+      <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 20 }}>
+        <Avatar name={visit.name} size={52} />
+        <div>
+          <div style={{ fontWeight: 800, fontSize: "1.05rem", color: COLORS.navy }}>{visit.name}</div>
+          <div style={{ fontSize: "0.82rem", color: COLORS.slate }}>{visit.company !== "—" ? visit.company : "Individual visitor"}</div>
+        </div>
+        <div style={{ marginLeft: "auto" }}>
+          <Badge tone={visit.status === "checked-in" ? "success" : "slate"}>
+            {visit.status === "checked-in" ? "● In Premises" : "Checked Out"}
+          </Badge>
+        </div>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 16 }}>
+        <DetailRow iconName="Phone" label="Phone" value={visit.phone} />
+        <DetailRow iconName={t.icon} label="Visit Type" value={t.label} />
+        <DetailRow iconName="Building2" label="Meeting" value={host ? `${host.name} (${host.dept})` : "—"} />
+        <DetailRow iconName="FileText" label="Purpose" value={visit.purpose} />
+        <DetailRow iconName="Clock" label="Check-in" value={`${fmtTime(visit.checkIn)}, ${fmtDate(visit.checkIn)}`} />
+        <DetailRow iconName="Clock" label="Check-out" value={visit.checkOut ? `${fmtTime(visit.checkOut)}, ${fmtDate(visit.checkOut)}` : "Still inside"} />
+      </div>
+
+      <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
+        {visit.status === "checked-in" ? (
+          <button onClick={() => { onCheckout(visit.id); onClose(); }} style={{
+            flex: 1, padding: "12px", borderRadius: 10, border: "none", background: COLORS.navy,
+            color: "#fff", fontWeight: 700, cursor: "pointer", fontSize: "0.88rem",
+          }}>
+            <Icon name="LogOut" size={15} style={{ marginRight: 6, verticalAlign: "-2px" }} /> Check-out now
+          </button>
+        ) : (
+          <div style={{ flex: 1, padding: "12px", textAlign: "center", borderRadius: 10, background: "#F4F7FC", color: COLORS.slate, fontWeight: 600, fontSize: "0.85rem" }}>
+            Visit completed · {durationLabel(minutesBetween(visit.checkIn, visit.checkOut))}
+          </div>
+        )}
+        <button onClick={() => { onBlacklist(visit); onClose(); }} style={{
+          padding: "12px 16px", borderRadius: 10, border: `1.5px solid ${COLORS.danger}33`,
+          background: "#fff", color: COLORS.danger, fontWeight: 700, cursor: "pointer", fontSize: "0.85rem",
+        }}>
+          <Icon name="ShieldAlert" size={15} style={{ marginRight: 6, verticalAlign: "-2px" }} /> Blacklist
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
+function LoginScreen({ onLogin }) {
+  const [pw, setPw] = useState("");
+  const [showPw, setShowPw] = useState(false);
+  const [err, setErr] = useState("");
+
+  function submit(e) {
+    if (e && e.preventDefault) e.preventDefault();
+    if (pw.trim().length === 0) {
+      setErr("Please enter a password");
+      return;
+    }
+    setErr("");
+    onLogin();
+  }
+
+  return (
+    <div style={{
+      minHeight: "100vh", background: `linear-gradient(160deg, ${COLORS.navy} 0%, #0E2A52 55%, ${COLORS.royalDark} 100%)`,
+      display: "flex", alignItems: "center", justifyContent: "center", padding: 20,
+    }}>
+      <div style={{ width: "100%", maxWidth: 420 }}>
+        <div style={{ textAlign: "center", marginBottom: 28 }}>
+          <div style={{
+            width: 58, height: 58, borderRadius: 16, background: "rgba(255,255,255,0.1)",
+            display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px",
+            border: "1px solid rgba(255,255,255,0.15)",
+          }}>
+            <Icon name="Building2" size={28} color="#fff" />
+          </div>
+          <div style={{ color: "#fff", fontWeight: 800, fontSize: "1.5rem", letterSpacing: "-0.02em" }}>VisitorOS</div>
+          <div style={{ color: "rgba(255,255,255,0.6)", fontSize: "0.85rem", marginTop: 4 }}>Front Desk &amp; Visitor Management</div>
+        </div>
+
+        <form onSubmit={submit} style={{
+          background: "rgba(255,255,255,0.98)", borderRadius: 18, padding: "28px 26px",
+          boxShadow: "0 30px 60px -20px rgba(0,0,0,0.4)",
+        }}>
+          <div style={{ fontWeight: 800, color: COLORS.navy, fontSize: "1.05rem", marginBottom: 4 }}>Admin Login</div>
+          <div style={{ color: COLORS.slate, fontSize: "0.82rem", marginBottom: 20 }}>Enter your admin credentials</div>
+
+          <div style={{ marginBottom: 16 }}>
+            <FieldLabel>Admin ID</FieldLabel>
+            <div style={{ position: "relative" }}>
+              <input style={{ ...inputStyle, paddingLeft: 38 }} defaultValue="admin@company.com" />
+              <span style={{ position: "absolute", left: 12, top: 12, color: COLORS.slate }}><Icon name="Mail" size={16} /></span>
+            </div>
+          </div>
+
+          <div style={{ marginBottom: 6 }}>
+            <FieldLabel>Password</FieldLabel>
+            <div style={{ position: "relative" }}>
+              <input
+                type={showPw ? "text" : "password"} style={{ ...inputStyle, paddingLeft: 38, paddingRight: 38 }}
+                placeholder="••••••••" value={pw} onChange={(e) => setPw(e.target.value)}
+              />
+              <span style={{ position: "absolute", left: 12, top: 12, color: COLORS.slate }}><Icon name="Lock" size={16} /></span>
+              <button type="button" onClick={() => setShowPw(!showPw)} style={{
+                position: "absolute", right: 10, top: 8, background: "none", border: "none", cursor: "pointer", color: COLORS.slate,
+              }}>
+                <Icon name={showPw ? "EyeOff" : "Eye"} size={16} />
+              </button>
+            </div>
+          </div>
+          {err && <div style={{ color: COLORS.danger, fontSize: "0.78rem", fontWeight: 600, marginBottom: 10 }}>{err}</div>}
+
+          <button type="submit" onClick={submit} style={{
+            width: "100%", padding: "13px", borderRadius: 10, border: "none", background: COLORS.royal,
+            color: "#fff", fontWeight: 700, fontSize: "0.92rem", cursor: "pointer", marginTop: 14,
+            boxShadow: "0 10px 24px -8px rgba(30,79,217,0.55)",
+          }}>
+            Sign in to Dashboard
+          </button>
+
+          <div style={{ textAlign: "center", marginTop: 16, fontSize: "0.74rem", color: COLORS.slate }}>
+            Demo mode — enter any password to sign in
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function Sidebar({ active, setActive, onLogout, pendingCount }) {
+  const items = [
+    { id: "dashboard", label: "Dashboard", icon: "LayoutDashboard" },
+    { id: "visitors", label: "Active Visitors", icon: "Users", badge: pendingCount },
+    { id: "history", label: "Visit History", icon: "History" },
+    { id: "hosts", label: "Hosts / Employees", icon: "Building2" },
+    { id: "blacklist", label: "Blacklist", icon: "ShieldAlert" },
+    { id: "reports", label: "Reports", icon: "BarChart3" },
+  ];
+  return (
+    <div style={{
+      width: 248, background: COLORS.navy, minHeight: "100vh", display: "flex", flexDirection: "column",
+      flexShrink: 0, position: "sticky", top: 0,
+    }}>
+      <div style={{ padding: "26px 22px 22px", display: "flex", alignItems: "center", gap: 11 }}>
+        <div style={{
+          width: 36, height: 36, borderRadius: 10, background: COLORS.royal,
+          display: "flex", alignItems: "center", justifyContent: "center",
+        }}>
+          <Icon name="Building2" size={19} color="#fff" />
+        </div>
+        <div>
+          <div style={{ color: "#fff", fontWeight: 800, fontSize: "1.02rem", letterSpacing: "-0.01em" }}>VisitorOS</div>
+          <div style={{ color: "rgba(255,255,255,0.45)", fontSize: "0.68rem" }}>Front Desk Console</div>
+        </div>
+      </div>
+
+      <div style={{ padding: "8px 14px", flex: 1 }}>
+        {items.map((it) => {
+          const isActive = active === it.id;
+          return (
+            <button key={it.id} onClick={() => setActive(it.id)} style={{
+              width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "11px 14px",
+              borderRadius: 10, border: "none", marginBottom: 3, cursor: "pointer",
+              background: isActive ? "rgba(255,255,255,0.1)" : "transparent",
+              color: isActive ? "#fff" : "rgba(255,255,255,0.55)",
+              fontWeight: isActive ? 700 : 600, fontSize: "0.86rem", textAlign: "left",
+              transition: "all 0.15s", position: "relative",
+            }}>
+              <Icon name={it.icon} size={17} />
+              {it.label}
+              {it.badge > 0 && (
+                <span style={{
+                  marginLeft: "auto", background: COLORS.sky, color: "#fff", fontSize: "0.68rem",
+                  fontWeight: 700, borderRadius: "999px", padding: "1px 7px",
+                }}>{it.badge}</span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      <div style={{ padding: "16px 14px", borderTop: "1px solid rgba(255,255,255,0.08)" }}>
+        <button onClick={onLogout} style={{
+          width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "11px 14px",
+          borderRadius: 10, border: "none", background: "transparent", color: "rgba(255,255,255,0.5)",
+          fontWeight: 600, fontSize: "0.84rem", cursor: "pointer",
+        }}>
+          <Icon name="LogOut" size={16} /> Sign out
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function VisitRow({ visit, host, onOpen, onCheckout }) {
+  const t = VISIT_TYPES.find((x) => x.id === visit.type);
+  return (
+    <div onClick={() => onOpen(visit)} style={{
+      display: "grid", gridTemplateColumns: "auto 1.6fr 1fr 1fr 0.9fr auto", alignItems: "center",
+      gap: 14, padding: "13px 16px", borderRadius: 12, cursor: "pointer", background: "#fff",
+      border: "1px solid #EEF1F7", marginBottom: 8, transition: "box-shadow 0.15s",
+    }}
+      onMouseEnter={(e) => e.currentTarget.style.boxShadow = "0 4px 16px -8px rgba(11,30,61,0.18)"}
+      onMouseLeave={(e) => e.currentTarget.style.boxShadow = "none"}
+    >
+      <Avatar name={visit.name} size={36} />
+      <div>
+        <div style={{ fontWeight: 700, fontSize: "0.88rem", color: COLORS.navy }}>{visit.name}</div>
+        <div style={{ fontSize: "0.76rem", color: COLORS.slate, marginTop: 1 }}>{visit.purpose}</div>
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.82rem", color: COLORS.navy, fontWeight: 600 }}>
+        <TypeIcon type={visit.type} /> {t.label}
+      </div>
+      <div style={{ fontSize: "0.82rem", color: COLORS.slate }}>{host ? host.name : "—"}</div>
+      <div style={{ fontSize: "0.8rem", color: COLORS.slate, fontWeight: 600 }}>{fmtTime(visit.checkIn)}</div>
+      {visit.status === "checked-in" ? (
+        <button onClick={(e) => { e.stopPropagation(); onCheckout(visit.id); }} style={{
+          padding: "7px 13px", borderRadius: 8, border: `1.5px solid ${COLORS.royal}33`,
+          background: COLORS.royal + "0F", color: COLORS.royal, fontWeight: 700, fontSize: "0.76rem", cursor: "pointer",
+          whiteSpace: "nowrap",
+        }}>
+          Check-out
+        </button>
+      ) : (
+        <Badge tone="slate">Done</Badge>
+      )}
+    </div>
+  );
+}
+
+function EmptyState({ text }) {
+  return (
+    <div style={{ textAlign: "center", padding: "40px 20px", color: COLORS.slate }}>
+      <Icon name="Users" size={32} style={{ opacity: 0.3, marginBottom: 10 }} />
+      <div style={{ fontSize: "0.86rem", fontWeight: 600 }}>{text}</div>
+    </div>
+  );
+}
+
+function VisitorManagementSystem() {
+  const [loggedIn, setLoggedIn] = useState(false);
+  const [active, setActive] = useState("dashboard");
+  const [visits, setVisits] = useState(seedVisits);
+  const [blacklist, setBlacklist] = useState([
+    { phone: "+91 99887 66554", name: "Deepak Rane", reason: "Unauthorized entry attempt", date: new Date(Date.now() - 12 * 86400000) },
+  ]);
+  const [showCheckIn, setShowCheckIn] = useState(false);
+  const [selectedVisit, setSelectedVisit] = useState(null);
+  const [search, setSearch] = useState("");
+  const [typeFilter, setTypeFilter] = useState("all");
+  const [tick, setTick] = useState(Date.now());
+
+  useEffect(() => {
+    const i = setInterval(() => setTick(Date.now()), 30000);
+    return () => clearInterval(i);
+  }, []);
+
+  const today = new Date();
+  const isToday = (d) => d.toDateString() === today.toDateString();
+
+  const todaysVisits = useMemo(() => visits.filter((v) => isToday(v.checkIn)), [visits, tick]);
+  const activeVisitors = useMemo(() => visits.filter((v) => v.status === "checked-in"), [visits]);
+  const checkedOutToday = todaysVisits.filter((v) => v.status === "checked-out");
+
+  const avgDuration = useMemo(() => {
+    const done = checkedOutToday;
+    if (done.length === 0) return 0;
+    const total = done.reduce((s, v) => s + minutesBetween(v.checkIn, v.checkOut), 0);
+    return Math.round(total / done.length);
+  }, [checkedOutToday]);
+
+  function handleCheckIn(form) {
+    const newVisit = {
+      id: "v" + Math.random().toString(36).slice(2, 9),
+      name: form.name, phone: form.phone, company: form.company || "—",
+      type: form.type, hostId: form.hostId, purpose: form.purpose,
+      status: "checked-in", checkIn: new Date(), checkOut: null,
+      photo: null, badge: "VM-" + Math.floor(1000 + Math.random() * 9000), blacklisted: false,
+    };
+    setVisits((v) => [newVisit, ...v]);
+    setShowCheckIn(false);
+  }
+
+  function handleCheckout(id) {
+    setVisits((vs) => vs.map((v) => v.id === id ? { ...v, status: "checked-out", checkOut: new Date() } : v));
+  }
+
+  function handleBlacklist(visit) {
+    setBlacklist((bl) => [...bl, { phone: visit.phone, name: visit.name, reason: "Manually added by admin", date: new Date() }]);
+  }
+
+  function removeFromBlacklist(phone) {
+    setBlacklist((bl) => bl.filter((b) => b.phone !== phone));
+  }
+
+  const filteredVisits = useMemo(() => {
+    return visits.filter((v) => {
+      const matchesSearch = search.trim() === "" ||
+        v.name.toLowerCase().includes(search.toLowerCase()) ||
+        v.phone.includes(search) ||
+        v.company.toLowerCase().includes(search.toLowerCase());
+      const matchesType = typeFilter === "all" || v.type === typeFilter;
+      return matchesSearch && matchesType;
+    });
+  }, [visits, search, typeFilter]);
+
+  if (!loggedIn) return <LoginScreen onLogin={() => setLoggedIn(true)} />;
+
+  const pageTitle = {
+    dashboard: "Dashboard", visitors: "Active Visitors", history: "Visit History",
+    hosts: "Hosts & Employees", blacklist: "Blacklist Management", reports: "Reports & Analytics",
+  };
+
+  return (
+    <div style={{ display: "flex", background: COLORS.ice, minHeight: "100vh" }}>
+      <Sidebar active={active} setActive={setActive} onLogout={() => setLoggedIn(false)} pendingCount={activeVisitors.length} />
+
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{
+          padding: "20px 32px", display: "flex", justifyContent: "space-between", alignItems: "center",
+          borderBottom: "1px solid #E7EBF3", background: "#fff", position: "sticky", top: 0, zIndex: 10,
+        }}>
+          <div>
+            <div style={{ fontFamily: "'Lexend', sans-serif", fontSize: "1.3rem", fontWeight: 700, color: COLORS.navy }}>
+              {pageTitle[active]}
+            </div>
+            <div style={{ fontSize: "0.8rem", color: COLORS.slate, marginTop: 2 }}>
+              {fmtDate(today)} · {activeVisitors.length} visitor{activeVisitors.length !== 1 ? "s" : ""} currently on premises
+            </div>
+          </div>
+          <button onClick={() => setShowCheckIn(true)} style={{
+            display: "flex", alignItems: "center", gap: 8, padding: "11px 20px", borderRadius: 11,
+            border: "none", background: COLORS.royal, color: "#fff", fontWeight: 700, fontSize: "0.86rem",
+            cursor: "pointer", boxShadow: "0 10px 24px -10px rgba(30,79,217,0.6)",
+          }}>
+            <Icon name="UserPlus" size={17} /> New Check-in
+          </button>
+        </div>
+
+        <div style={{ padding: "28px 32px" }}>
+          {active === "dashboard" && (
+            <>
+              <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginBottom: 24 }}>
+                <StatCard label="Visitors Today" value={todaysVisits.length} delta={12} iconName="Users" accent={COLORS.royal} />
+                <StatCard label="Currently Inside" value={activeVisitors.length} iconName="UserCheck" accent={COLORS.success} />
+                <StatCard label="Avg. Visit Duration" value={durationLabel(avgDuration || 0)} iconName="Clock" accent={COLORS.amber} />
+                <StatCard label="Blacklisted Contacts" value={blacklist.length} iconName="ShieldAlert" accent={COLORS.danger} />
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr", gap: 18 }}>
+                <div style={{ background: "#fff", borderRadius: 16, padding: "22px 24px", border: "1px solid #EEF1F7" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                    <div style={{ fontWeight: 800, color: COLORS.navy, fontSize: "1rem" }}>Live Activity</div>
+                    <Badge tone="success">● Live</Badge>
+                  </div>
+                  {activeVisitors.length === 0 ? (
+                    <EmptyState text="No visitors are currently on the premises." />
+                  ) : (
+                    activeVisitors.slice(0, 6).map((v) => (
+                      <VisitRow key={v.id} visit={v} host={HOSTS.find((h) => h.id === v.hostId)}
+                        onOpen={setSelectedVisit} onCheckout={handleCheckout} />
+                    ))
+                  )}
+                </div>
+
+                <div style={{ background: "#fff", borderRadius: 16, padding: "22px 24px", border: "1px solid #EEF1F7" }}>
+                  <div style={{ fontWeight: 800, color: COLORS.navy, fontSize: "1rem", marginBottom: 16 }}>Visit Type Split — Today</div>
+                  {VISIT_TYPES.map((t) => {
+                    const count = todaysVisits.filter((v) => v.type === t.id).length;
+                    const pct = todaysVisits.length ? Math.round((count / todaysVisits.length) * 100) : 0;
+                    return (
+                      <div key={t.id} style={{ marginBottom: 14 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.82rem", marginBottom: 6 }}>
+                          <span style={{ display: "flex", alignItems: "center", gap: 6, fontWeight: 600, color: COLORS.navy }}>
+                            <Icon name={t.icon} size={14} color={t.color} /> {t.label}
+                          </span>
+                          <span style={{ color: COLORS.slate, fontWeight: 600 }}>{count}</span>
+                        </div>
+                        <div style={{ height: 7, background: "#F0F3FA", borderRadius: 5, overflow: "hidden" }}>
+                          <div style={{ width: `${pct}%`, height: "100%", background: t.color, borderRadius: 5 }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  <div style={{ marginTop: 22, paddingTop: 18, borderTop: "1px solid #EEF1F7" }}>
+                    <div style={{ fontWeight: 800, color: COLORS.navy, fontSize: "0.92rem", marginBottom: 10 }}>Department Footfall</div>
+                    {DEPARTMENTS.slice(0, 4).map((d) => {
+                      const count = todaysVisits.filter((v) => { const h = HOSTS.find(h => h.id === v.hostId); return h && h.dept === d; }).length;
+                      return (
+                        <div key={d} style={{ display: "flex", justifyContent: "space-between", fontSize: "0.8rem", padding: "6px 0", color: COLORS.slate }}>
+                          <span>{d}</span><span style={{ fontWeight: 700, color: COLORS.navy }}>{count}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {(active === "visitors" || active === "history") && (
+            <>
+              <div style={{ display: "flex", gap: 10, marginBottom: 18, flexWrap: "wrap" }}>
+                <div style={{ position: "relative", flex: "1 1 260px" }}>
+                  <span style={{ position: "absolute", left: 13, top: 13, color: COLORS.slate }}><Icon name="Search" size={16} /></span>
+                  <input placeholder="Search by name, phone or company..." value={search} onChange={(e) => setSearch(e.target.value)}
+                    style={{ ...inputStyle, paddingLeft: 38 }} />
+                </div>
+                <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} style={{ ...inputStyle, width: 180, cursor: "pointer" }}>
+                  <option value="all">All Visit Types</option>
+                  {VISIT_TYPES.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
+                </select>
+              </div>
+
+              <div style={{
+                display: "grid", gridTemplateColumns: "auto 1.6fr 1fr 1fr 0.9fr auto", gap: 14,
+                padding: "0 16px 10px", fontSize: "0.7rem", fontWeight: 700, color: COLORS.slate, letterSpacing: "0.04em",
+              }}>
+                <div></div><div>VISITOR</div><div>TYPE</div><div>HOST</div><div>TIME</div><div></div>
+              </div>
+
+              {(active === "visitors" ? filteredVisits.filter(v => v.status === "checked-in") : filteredVisits).length === 0 ? (
+                <EmptyState text="No results found." />
+              ) : (
+                (active === "visitors" ? filteredVisits.filter(v => v.status === "checked-in") : filteredVisits)
+                  .sort((a, b) => b.checkIn - a.checkIn)
+                  .map((v) => (
+                    <VisitRow key={v.id} visit={v} host={HOSTS.find((h) => h.id === v.hostId)}
+                      onOpen={setSelectedVisit} onCheckout={handleCheckout} />
+                  ))
+              )}
+            </>
+          )}
+
+          {active === "hosts" && (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 14 }}>
+              {HOSTS.map((h) => {
+                const hostVisits = visits.filter((v) => v.hostId === h.id);
+                return (
+                  <div key={h.id} style={{ background: "#fff", borderRadius: 14, padding: "18px 20px", border: "1px solid #EEF1F7" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+                      <Avatar name={h.name} size={42} />
+                      <div>
+                        <div style={{ fontWeight: 700, color: COLORS.navy, fontSize: "0.92rem" }}>{h.name}</div>
+                        <div style={{ fontSize: "0.76rem", color: COLORS.slate }}>{h.dept}</div>
+                      </div>
+                    </div>
+                    <div style={{ fontSize: "0.78rem", color: COLORS.slate, display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+                      <Icon name="Phone" size={12} /> {h.phone}
+                    </div>
+                    <div style={{ fontSize: "0.78rem", color: COLORS.royal, fontWeight: 700, marginTop: 8 }}>
+                      {hostVisits.length} total visit{hostVisits.length !== 1 ? "s" : ""}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {active === "blacklist" && (
+            <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #EEF1F7", overflow: "hidden" }}>
+              {blacklist.length === 0 ? (
+                <div style={{ padding: 24 }}><EmptyState text="The blacklist is empty." /></div>
+              ) : blacklist.map((b, i) => (
+                <div key={b.phone + i} style={{
+                  display: "flex", alignItems: "center", gap: 14, padding: "16px 22px",
+                  borderBottom: i < blacklist.length - 1 ? "1px solid #EEF1F7" : "none",
+                }}>
+                  <div style={{
+                    width: 38, height: 38, borderRadius: 10, background: "rgba(214,69,69,0.1)",
+                    display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+                  }}>
+                    <Icon name="ShieldAlert" size={17} color={COLORS.danger} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 700, color: COLORS.navy, fontSize: "0.88rem" }}>{b.name}</div>
+                    <div style={{ fontSize: "0.78rem", color: COLORS.slate }}>{b.phone} · {b.reason}</div>
+                  </div>
+                  <div style={{ fontSize: "0.76rem", color: COLORS.slate }}>{fmtDate(b.date)}</div>
+                  <button onClick={() => removeFromBlacklist(b.phone)} style={{
+                    border: "none", background: "#F4F7FC", borderRadius: 8, padding: "7px 11px",
+                    cursor: "pointer", color: COLORS.slate, fontSize: "0.76rem", fontWeight: 700,
+                  }}>
+                    Remove
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {active === "reports" && (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18 }}>
+              <div style={{ background: "#fff", borderRadius: 16, padding: "22px 24px", border: "1px solid #EEF1F7" }}>
+                <div style={{ fontWeight: 800, color: COLORS.navy, marginBottom: 16 }}>Weekly Footfall Trend</div>
+                {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Today"].map((d, i) => {
+                  const val = [14, 18, 11, 22, 17, 6, todaysVisits.length][i];
+                  const max = 22;
+                  return (
+                    <div key={d} style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
+                      <div style={{ width: 44, fontSize: "0.76rem", color: COLORS.slate, fontWeight: 600 }}>{d}</div>
+                      <div style={{ flex: 1, height: 9, background: "#F0F3FA", borderRadius: 5, overflow: "hidden" }}>
+                        <div style={{ width: `${(val / max) * 100}%`, height: "100%", background: i === 6 ? COLORS.royal : COLORS.sky, borderRadius: 5 }} />
+                      </div>
+                      <div style={{ width: 28, fontSize: "0.78rem", fontWeight: 700, color: COLORS.navy, textAlign: "right" }}>{val}</div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div style={{ background: "#fff", borderRadius: 16, padding: "22px 24px", border: "1px solid #EEF1F7" }}>
+                <div style={{ fontWeight: 800, color: COLORS.navy, marginBottom: 16 }}>Export Reports</div>
+                <div style={{ fontSize: "0.82rem", color: COLORS.slate, marginBottom: 18, lineHeight: 1.6 }}>
+                  Once connected to a backend, daily, weekly and monthly visitor reports can be exported to CSV/Excel from here.
+                </div>
+                {["Today's Visitor Log", "This Week Summary", "Monthly Department Report", "Blacklist Audit Log"].map((r) => (
+                  <button key={r} style={{
+                    width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
+                    padding: "12px 14px", borderRadius: 10, border: "1.5px solid #E3E8F2", background: "#FAFBFD",
+                    color: COLORS.navy, fontWeight: 600, fontSize: "0.84rem", marginBottom: 8, cursor: "pointer",
+                  }}>
+                    {r} <Icon name="ArrowUpRight" size={15} color={COLORS.slate} />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {showCheckIn && (
+        <CheckInModal onClose={() => setShowCheckIn(false)} onSubmit={handleCheckIn} blacklist={blacklist} />
+      )}
+      {selectedVisit && (
+        <VisitorDetailModal
+          visit={selectedVisit}
+          host={HOSTS.find((h) => h.id === selectedVisit.hostId)}
+          onClose={() => setSelectedVisit(null)}
+          onCheckout={handleCheckout}
+          onBlacklist={handleBlacklist}
+        />
+      )}
+    </div>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(<VisitorManagementSystem />);
+</script>
+</body>
+</html>
