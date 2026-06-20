@@ -26,7 +26,7 @@
 <div id="root"></div>
 
 <script type="text/babel" data-presets="react">
-const { useState, useMemo, useEffect } = React;
+const { useState, useMemo, useEffect, useRef } = React;
 
 /* ---------- Icon helper: self-contained inline SVG (no external icon library needed) ---------- */
 const ICON_PATHS = {
@@ -54,6 +54,9 @@ const ICON_PATHS = {
   UserPlus: ["M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2", "M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8", "M19 8v6", "M22 11h-6"],
   CheckCircle2: ["M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20", "m9 12 2 2 4-4"],
   Camera: ["M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z", "M12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8"],
+  RefreshCw: ["M3 12a9 9 0 0 1 15-6.7L21 8", "M21 3v5h-5", "M21 12a9 9 0 0 1-15 6.7L3 16", "M3 21v-5h5"],
+  AlertCircle: ["M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20", "M12 8v4", "M12 16h.01"],
+  VideoOff: ["M10.66 6H14a2 2 0 0 1 2 2v2.5l5.248-3.062A.5.5 0 0 1 22 7.87v8.196", "M16 16a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2", "M2 2l20 20"],
 };
 
 function Icon({ name, size = 16, color = "currentColor", style = {} }) {
@@ -203,13 +206,20 @@ function StatCard({ label, value, delta, iconName, accent }) {
   );
 }
 
-function Avatar({ name, size = 38 }) {
+function Avatar({ name, size = 38, photo = null }) {
   const initials = name.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase();
   const hue = useMemo(() => {
     let h = 0;
     for (let i = 0; i < name.length; i++) h = (h + name.charCodeAt(i) * 7) % 360;
     return h;
   }, [name]);
+  if (photo) {
+    return (
+      <img src={photo} alt={name} style={{
+        width: size, height: size, borderRadius: "50%", flexShrink: 0, objectFit: "cover",
+      }} />
+    );
+  }
   return (
     <div style={{
       width: size, height: size, borderRadius: "50%", flexShrink: 0,
@@ -289,11 +299,159 @@ function SelectField({ label, required, children, ...props }) {
   );
 }
 
+function WebcamCapture({ photo, onCapture, onClear }) {
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
+  const streamRef = useRef(null);
+  const [mode, setMode] = useState("idle"); // idle | starting | live | error
+  const [errMsg, setErrMsg] = useState("");
+
+  function stopStream() {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+    }
+  }
+
+  async function startCamera() {
+    setMode("starting");
+    setErrMsg("");
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { width: { ideal: 480 }, height: { ideal: 360 }, facingMode: "user" },
+        audio: false,
+      });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+      }
+      setMode("live");
+    } catch (err) {
+      setMode("error");
+      if (err && err.name === "NotAllowedError") {
+        setErrMsg("Camera permission was denied. Please allow camera access in your browser settings.");
+      } else if (err && err.name === "NotFoundError") {
+        setErrMsg("No webcam was found on this device.");
+      } else {
+        setErrMsg("Could not access the webcam. Please check your camera and try again.");
+      }
+    }
+  }
+
+  function takeSnapshot() {
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    if (!video || !canvas) return;
+    const size = 320;
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext("2d");
+    const vw = video.videoWidth, vh = video.videoHeight;
+    const side = Math.min(vw, vh);
+    const sx = (vw - side) / 2, sy = (vh - side) / 2;
+    ctx.drawImage(video, sx, sy, side, side, 0, 0, size, size);
+    const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
+    stopStream();
+    setMode("idle");
+    onCapture(dataUrl);
+  }
+
+  function retake() {
+    onClear();
+    startCamera();
+  }
+
+  useEffect(() => {
+    return () => stopStream();
+  }, []);
+
+  if (photo) {
+    return (
+      <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+        <img src={photo} alt="Visitor" style={{
+          width: 84, height: 84, borderRadius: 12, objectFit: "cover",
+          border: "2px solid " + COLORS.success,
+        }} />
+        <div style={{ flex: 1 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, color: COLORS.success, fontWeight: 700, fontSize: "0.85rem", marginBottom: 8 }}>
+            <Icon name="CheckCircle2" size={16} /> Photo captured
+          </div>
+          <button onClick={retake} style={{
+            display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 8,
+            border: "1.5px solid #E3E8F2", background: "#FAFBFD", color: COLORS.slate,
+            fontWeight: 700, fontSize: "0.8rem", cursor: "pointer",
+          }}>
+            <Icon name="RefreshCw" size={14} /> Retake photo
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (mode === "live") {
+    return (
+      <div>
+        <div style={{
+          position: "relative", width: "100%", maxWidth: 320, margin: "0 auto",
+          borderRadius: 14, overflow: "hidden", background: "#000", aspectRatio: "1/1",
+        }}>
+          <video ref={videoRef} autoPlay playsInline muted style={{
+            width: "100%", height: "100%", objectFit: "cover", transform: "scaleX(-1)",
+          }} />
+          <div style={{
+            position: "absolute", inset: 14, border: "2px dashed rgba(255,255,255,0.5)",
+            borderRadius: 12, pointerEvents: "none",
+          }} />
+        </div>
+        <canvas ref={canvasRef} style={{ display: "none" }} />
+        <div style={{ display: "flex", gap: 8, justifyContent: "center", marginTop: 12 }}>
+          <button onClick={() => { stopStream(); setMode("idle"); }} style={{
+            padding: "10px 16px", borderRadius: 9, border: "1.5px solid #E3E8F2", background: "#fff",
+            color: COLORS.slate, fontWeight: 700, fontSize: "0.82rem", cursor: "pointer",
+          }}>Cancel</button>
+          <button onClick={takeSnapshot} style={{
+            display: "flex", alignItems: "center", gap: 7, padding: "10px 20px", borderRadius: 9, border: "none",
+            background: COLORS.royal, color: "#fff", fontWeight: 700, fontSize: "0.82rem", cursor: "pointer",
+            boxShadow: "0 8px 18px -8px rgba(30,79,217,0.5)",
+          }}>
+            <Icon name="Camera" size={15} /> Capture Photo
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <button onClick={startCamera} disabled={mode === "starting"} style={{
+        width: "100%", padding: "16px", borderRadius: 10, border: "1.5px dashed #C9D3E5",
+        background: "#FAFBFD", cursor: mode === "starting" ? "wait" : "pointer",
+        display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+        color: COLORS.slate, fontWeight: 600, fontSize: "0.85rem",
+      }}>
+        <Icon name={mode === "starting" ? "RefreshCw" : "Camera"} size={17} />
+        {mode === "starting" ? "Starting webcam..." : "Capture via webcam"}
+      </button>
+      {mode === "error" && (
+        <div style={{
+          display: "flex", gap: 8, alignItems: "flex-start", marginTop: 10, padding: "10px 12px",
+          background: "rgba(214,69,69,0.07)", borderRadius: 9, color: COLORS.danger, fontSize: "0.78rem", fontWeight: 600,
+        }}>
+          <Icon name="AlertCircle" size={15} style={{ flexShrink: 0, marginTop: 1 }} />
+          {errMsg}
+        </div>
+      )}
+    </div>
+  );
+}
+
+
 function CheckInModal({ onClose, onSubmit, blacklist }) {
   const [form, setForm] = useState({
     name: "", phone: "", company: "", type: "guest", hostId: HOSTS[0].id, purpose: "",
   });
-  const [photoTaken, setPhotoTaken] = useState(false);
+  const [photo, setPhoto] = useState(null);
   const [error, setError] = useState("");
 
   const isBlacklisted = blacklist.some(
@@ -309,7 +467,7 @@ function CheckInModal({ onClose, onSubmit, blacklist }) {
       setError("This visitor is on the blacklist. Please contact the admin.");
       return;
     }
-    onSubmit(form);
+    onSubmit({ ...form, photo });
   }
 
   return (
@@ -366,14 +524,7 @@ function CheckInModal({ onClose, onSubmit, blacklist }) {
 
       <div style={{ marginBottom: 16 }}>
         <FieldLabel>Visitor Photo</FieldLabel>
-        <button onClick={() => setPhotoTaken(!photoTaken)} style={{
-          width: "100%", padding: "16px", borderRadius: 10, border: "1.5px dashed #C9D3E5",
-          background: photoTaken ? "rgba(31,157,109,0.06)" : "#FAFBFD", cursor: "pointer",
-          display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-          color: photoTaken ? COLORS.success : COLORS.slate, fontWeight: 600, fontSize: "0.85rem",
-        }}>
-          {photoTaken ? (<><Icon name="CheckCircle2" size={17} /> Photo captured</>) : (<><Icon name="Camera" size={17} /> Capture via webcam</>)}
-        </button>
+        <WebcamCapture photo={photo} onCapture={setPhoto} onClear={() => setPhoto(null)} />
       </div>
 
       {error && <div style={{ color: COLORS.danger, fontSize: "0.82rem", fontWeight: 600, marginBottom: 12 }}>{error}</div>}
@@ -410,7 +561,7 @@ function VisitorDetailModal({ visit, host, onClose, onCheckout, onBlacklist }) {
   return (
     <Modal title="Visitor Details" onClose={onClose} width={460}>
       <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 20 }}>
-        <Avatar name={visit.name} size={52} />
+        <Avatar name={visit.name} size={52} photo={visit.photo} />
         <div>
           <div style={{ fontWeight: 800, fontSize: "1.05rem", color: COLORS.navy }}>{visit.name}</div>
           <div style={{ fontSize: "0.82rem", color: COLORS.slate }}>{visit.company !== "—" ? visit.company : "Individual visitor"}</div>
@@ -613,7 +764,7 @@ function VisitRow({ visit, host, onOpen, onCheckout }) {
       onMouseEnter={(e) => e.currentTarget.style.boxShadow = "0 4px 16px -8px rgba(11,30,61,0.18)"}
       onMouseLeave={(e) => e.currentTarget.style.boxShadow = "none"}
     >
-      <Avatar name={visit.name} size={36} />
+      <Avatar name={visit.name} size={36} photo={visit.photo} />
       <div>
         <div style={{ fontWeight: 700, fontSize: "0.88rem", color: COLORS.navy }}>{visit.name}</div>
         <div style={{ fontSize: "0.76rem", color: COLORS.slate, marginTop: 1 }}>{visit.purpose}</div>
@@ -685,7 +836,7 @@ function VisitorManagementSystem() {
       name: form.name, phone: form.phone, company: form.company || "—",
       type: form.type, hostId: form.hostId, purpose: form.purpose,
       status: "checked-in", checkIn: new Date(), checkOut: null,
-      photo: null, badge: "VM-" + Math.floor(1000 + Math.random() * 9000), blacklisted: false,
+      photo: form.photo || null, badge: "VM-" + Math.floor(1000 + Math.random() * 9000), blacklisted: false,
     };
     setVisits((v) => [newVisit, ...v]);
     setShowCheckIn(false);
