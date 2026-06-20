@@ -322,10 +322,6 @@ function WebcamCapture({ photo, onCapture, onClear }) {
         audio: false,
       });
       streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
-      }
       setMode("live");
     } catch (err) {
       setMode("error");
@@ -339,15 +335,41 @@ function WebcamCapture({ photo, onCapture, onClear }) {
     }
   }
 
+  // Attach the stream to the <video> element only once it exists in the DOM
+  // (i.e. after mode becomes "live" and React has rendered the <video> tag).
+  useEffect(() => {
+    if (mode === "live" && streamRef.current && videoRef.current) {
+      const video = videoRef.current;
+      video.srcObject = streamRef.current;
+      const playVideo = () => {
+        video.play().catch(() => {
+          // Autoplay can be blocked momentarily on some mobile browsers;
+          // retry once after a short delay.
+          setTimeout(() => video.play().catch(() => {}), 200);
+        });
+      };
+      if (video.readyState >= 1) {
+        playVideo();
+      } else {
+        video.onloadedmetadata = playVideo;
+      }
+    }
+  }, [mode]);
+
   function takeSnapshot() {
     const video = videoRef.current;
     const canvas = canvasRef.current;
     if (!video || !canvas) return;
+    const vw = video.videoWidth, vh = video.videoHeight;
+    if (!vw || !vh) {
+      // Video isn't ready yet — try again shortly instead of capturing a black frame.
+      setTimeout(takeSnapshot, 150);
+      return;
+    }
     const size = 320;
     canvas.width = size;
     canvas.height = size;
     const ctx = canvas.getContext("2d");
-    const vw = video.videoWidth, vh = video.videoHeight;
     const side = Math.min(vw, vh);
     const sx = (vw - side) / 2, sy = (vh - side) / 2;
     ctx.drawImage(video, sx, sy, side, side, 0, 0, size, size);
