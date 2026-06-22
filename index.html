@@ -11,7 +11,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
 <style>
   * { box-sizing: border-box; }
-  html, body { margin: 0; padding: 0; }
+  html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
+  #root { height: 100vh; height: 100dvh; }
   body { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
   ::-webkit-scrollbar { width: 8px; height: 8px; }
   ::-webkit-scrollbar-thumb { background: #D5DCEA; border-radius: 8px; }
@@ -57,6 +58,7 @@ const ICON_PATHS = {
   RefreshCw: ["M3 12a9 9 0 0 1 15-6.7L21 8", "M21 3v5h-5", "M21 12a9 9 0 0 1-15 6.7L3 16", "M3 21v-5h5"],
   AlertCircle: ["M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20", "M12 8v4", "M12 16h.01"],
   VideoOff: ["M10.66 6H14a2 2 0 0 1 2 2v2.5l5.248-3.062A.5.5 0 0 1 22 7.87v8.196", "M16 16a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2", "M2 2l20 20"],
+  Car: ["M14 16.5H9m10 0h1.5a1 1 0 0 0 1-1v-3.7a1 1 0 0 0-.4-.8L19 9l-1.5-4.5A2 2 0 0 0 15.6 3H8.4a2 2 0 0 0-1.9 1.5L5 9l-2.1 1.9a1 1 0 0 0-.4.8V15.5a1 1 0 0 0 1 1H5", "M7 16.5a2 2 0 1 0 4 0 2 2 0 1 0-4 0", "M14 16.5a2 2 0 1 0 4 0 2 2 0 1 0-4 0", "M2 11h17"],
 };
 
 function Icon({ name, size = 16, color = "currentColor", style = {} }) {
@@ -87,20 +89,21 @@ const COLORS = {
 };
 
 const VISIT_TYPES = [
-  { id: "guest", label: "Guest", icon: "UserCheck", color: COLORS.royal },
+  { id: "driver", label: "Driver", icon: "Car", color: COLORS.royal },
   { id: "vendor", label: "Vendor", icon: "Briefcase", color: COLORS.amber },
+  { id: "client", label: "Client", icon: "UserCheck", color: COLORS.success },
   { id: "interview", label: "Interview", icon: "FileText", color: "#7A4FE8" },
-  { id: "delivery", label: "Delivery", icon: "Truck", color: COLORS.success },
+  { id: "other", label: "Other", icon: "Users", color: COLORS.slate },
 ];
 
-const DEPARTMENTS = ["Operations", "Human Resources", "Finance", "Engineering", "Sales", "Administration"];
+const DEPARTMENTS = ["Operations", "Fleet & Drivers", "Bookings & Sales", "Accounts", "Human Resources", "Administration"];
 
 const HOSTS = [
   { id: "h1", name: "Anil Deshmukh", dept: "Operations", phone: "+91 98220 11223" },
   { id: "h2", name: "Priya Naik", dept: "Human Resources", phone: "+91 98220 33445" },
-  { id: "h3", name: "Rahul Kulkarni", dept: "Finance", phone: "+91 98220 55667" },
-  { id: "h4", name: "Sneha Patil", dept: "Engineering", phone: "+91 98220 77889" },
-  { id: "h5", name: "Vikram Joshi", dept: "Sales", phone: "+91 98220 99001" },
+  { id: "h3", name: "Rahul Kulkarni", dept: "Accounts", phone: "+91 98220 55667" },
+  { id: "h4", name: "Sneha Patil", dept: "Fleet & Drivers", phone: "+91 98220 77889" },
+  { id: "h5", name: "Vikram Joshi", dept: "Bookings & Sales", phone: "+91 98220 99001" },
 ];
 
 function fmtTime(d) {
@@ -119,6 +122,81 @@ function durationLabel(mins) {
   return `${h}h ${m}m`;
 }
 
+/* ---------- CSV export helpers ---------- */
+function csvEscape(val) {
+  const s = String(val == null ? "" : val);
+  if (/[",\n]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
+  return s;
+}
+
+function downloadCSV(filename, headers, rows) {
+  const lines = [headers.map(csvEscape).join(",")];
+  rows.forEach((row) => lines.push(row.map(csvEscape).join(",")));
+  const csv = lines.join("\r\n");
+  const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function visitRowsToCSV(visits) {
+  const headers = ["Name", "Phone", "Company", "Visit Type", "Host", "Department", "Purpose", "Check-in", "Check-out", "Duration", "Status"];
+  const rows = visits.map((v) => {
+    const t = VISIT_TYPES.find((x) => x.id === v.type);
+    const host = HOSTS.find((h) => h.id === v.hostId);
+    return [
+      v.name, v.phone, v.company || "—", t ? t.label : v.type,
+      host ? host.name : "—", host ? host.dept : "—", v.purpose,
+      `${fmtDate(v.checkIn)} ${fmtTime(v.checkIn)}`,
+      v.checkOut ? `${fmtDate(v.checkOut)} ${fmtTime(v.checkOut)}` : "Still inside",
+      v.checkOut ? durationLabel(minutesBetween(v.checkIn, v.checkOut)) : "—",
+      v.status === "checked-in" ? "Checked In" : "Checked Out",
+    ];
+  });
+  return { headers, rows };
+}
+
+function exportTodaysVisitorLog(visits) {
+  const today = new Date();
+  const todays = visits.filter((v) => v.checkIn.toDateString() === today.toDateString());
+  const { headers, rows } = visitRowsToCSV(todays);
+  downloadCSV(`Todays_Visitor_Log_${today.toISOString().slice(0, 10)}.csv`, headers, rows);
+}
+
+function exportWeekSummary(visits) {
+  const now = new Date();
+  const weekAgo = new Date(now.getTime() - 7 * 86400000);
+  const weekVisits = visits.filter((v) => v.checkIn >= weekAgo && v.checkIn <= now);
+  const { headers, rows } = visitRowsToCSV(weekVisits);
+  downloadCSV(`This_Week_Summary_${now.toISOString().slice(0, 10)}.csv`, headers, rows);
+}
+
+function exportMonthlyDepartmentReport(visits) {
+  const now = new Date();
+  const monthAgo = new Date(now.getTime() - 30 * 86400000);
+  const monthVisits = visits.filter((v) => v.checkIn >= monthAgo && v.checkIn <= now);
+  const counts = {};
+  monthVisits.forEach((v) => {
+    const host = HOSTS.find((h) => h.id === v.hostId);
+    const dept = host ? host.dept : "Unknown";
+    counts[dept] = (counts[dept] || 0) + 1;
+  });
+  const headers = ["Department", "Total Visits (Last 30 Days)"];
+  const rows = Object.keys(counts).map((dept) => [dept, counts[dept]]);
+  downloadCSV(`Monthly_Department_Report_${now.toISOString().slice(0, 10)}.csv`, headers, rows);
+}
+
+function exportBlacklistAuditLog(blacklist) {
+  const headers = ["Name", "Phone", "Reason", "Date Added"];
+  const rows = blacklist.map((b) => [b.name, b.phone, b.reason, fmtDate(b.date)]);
+  downloadCSV(`Blacklist_Audit_Log_${new Date().toISOString().slice(0, 10)}.csv`, headers, rows);
+}
+
 function seedVisits() {
   const now = new Date();
   const mk = (offsetHrs, durMins, name, phone, type, hostId, purpose, status, company) => {
@@ -135,14 +213,14 @@ function seedVisits() {
     };
   };
   return [
-    mk(0.3, 0, "Suresh Kale", "+91 90220 11111", "guest", "h1", "Vendor contract discussion", "checked-in", "Kale Traders"),
-    mk(1.1, 0, "Megha Shinde", "+91 90220 22222", "interview", "h2", "Interview - Sr. Analyst", "checked-in", "—"),
-    mk(2.4, 45, "Omkar Pawar", "+91 90220 33333", "delivery", "h3", "Office stationery delivery", "checked-out", "Speedy Logistics"),
-    mk(4.0, 38, "Asha Bhosale", "+91 90220 44444", "guest", "h4", "Client demo meeting", "checked-out", "NorthStar Pvt Ltd"),
-    mk(5.2, 22, "Ganesh More", "+91 90220 55555", "vendor", "h1", "AMC service visit", "checked-out", "CoolTech Services"),
-    mk(23.5, 50, "Rutuja Sawant", "+91 90220 66666", "interview", "h2", "Interview - HR Executive", "checked-out", "—"),
-    mk(25.0, 30, "Nitin Jadhav", "+91 90220 77777", "guest", "h5", "Partnership discussion", "checked-out", "Jadhav & Co"),
-    mk(48.0, 40, "Komal Gaikwad", "+91 90220 88888", "delivery", "h3", "Courier - documents", "checked-out", "BlueDart"),
+    mk(0.3, 0, "Suresh Kale", "+91 90220 11111", "driver", "h4", "Reporting for outstation duty - MH12 AB 1234", "checked-in", "—"),
+    mk(1.1, 0, "Megha Shinde", "+91 90220 22222", "interview", "h2", "Interview - Driver post", "checked-in", "—"),
+    mk(2.4, 45, "Omkar Pawar", "+91 90220 33333", "vendor", "h4", "Vehicle servicing & parts delivery", "checked-out", "Speedy Auto Works"),
+    mk(4.0, 38, "Asha Bhosale", "+91 90220 44444", "client", "h5", "Booking enquiry - Goa tour package", "checked-out", "—"),
+    mk(5.2, 22, "Ganesh More", "+91 90220 55555", "driver", "h4", "Returning vehicle after local trip", "checked-out", "—"),
+    mk(23.5, 50, "Rutuja Sawant", "+91 90220 66666", "interview", "h2", "Interview - Office Coordinator", "checked-out", "—"),
+    mk(25.0, 30, "Nitin Jadhav", "+91 90220 77777", "client", "h5", "Corporate travel contract discussion", "checked-out", "Jadhav & Co"),
+    mk(48.0, 40, "Komal Gaikwad", "+91 90220 88888", "vendor", "h3", "Insurance documents delivery", "checked-out", "SecureCover Insurance"),
   ];
 }
 
@@ -311,9 +389,14 @@ function WebcamCapture({ photo, onCapture, onClear }) {
       streamRef.current.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
     }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
   }
 
   async function startCamera() {
+    // If a stream is already live, don't request a new one.
+    if (streamRef.current && mode === "live") return;
     setMode("starting");
     setErrMsg("");
     try {
@@ -381,7 +464,10 @@ function WebcamCapture({ photo, onCapture, onClear }) {
 
   function retake() {
     onClear();
-    startCamera();
+    stopStream();
+    // Give the browser a brief moment to fully release the previous camera
+    // track before requesting a new stream — helps avoid a duplicate prompt.
+    setTimeout(startCamera, 250);
   }
 
   useEffect(() => {
@@ -469,15 +555,77 @@ function WebcamCapture({ photo, onCapture, onClear }) {
 }
 
 
+function ResumeUpload({ file, onSelect, onClear }) {
+  const inputRef = useRef(null);
+
+  function handleChange(e) {
+    const f = e.target.files && e.target.files[0];
+    if (!f) return;
+    onSelect(f);
+  }
+
+  if (file) {
+    return (
+      <div style={{
+        display: "flex", alignItems: "center", gap: 12, padding: "12px 14px",
+        borderRadius: 10, border: "1.5px solid #E3E8F2", background: "#FAFBFD",
+      }}>
+        <div style={{
+          width: 36, height: 36, borderRadius: 9, background: "rgba(30,79,217,0.1)",
+          display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+        }}>
+          <Icon name="FileText" size={17} color={COLORS.royal} />
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: "0.84rem", fontWeight: 700, color: COLORS.navy, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+            {file.name}
+          </div>
+          <div style={{ fontSize: "0.74rem", color: COLORS.slate }}>
+            {(file.size / 1024).toFixed(0)} KB
+          </div>
+        </div>
+        <button onClick={onClear} style={{
+          background: "#fff", borderRadius: 8, padding: "7px 11px",
+          cursor: "pointer", color: COLORS.danger, fontSize: "0.76rem", fontWeight: 700,
+          border: "1.5px solid rgba(214,69,69,0.25)",
+        }}>
+          Remove
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <button
+        onClick={() => inputRef.current && inputRef.current.click()}
+        style={{
+          width: "100%", padding: "16px", borderRadius: 10, border: "1.5px dashed #C9D3E5",
+          background: "#FAFBFD", cursor: "pointer",
+          display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+          color: COLORS.slate, fontWeight: 600, fontSize: "0.85rem",
+        }}
+      >
+        <Icon name="FileText" size={17} /> Upload Resume (PDF/DOC)
+      </button>
+      <input
+        ref={inputRef} type="file" accept=".pdf,.doc,.docx"
+        onChange={handleChange} style={{ display: "none" }}
+      />
+    </div>
+  );
+}
+
 function CheckInModal({ onClose, onSubmit, blacklist }) {
   const [form, setForm] = useState({
-    name: "", phone: "", company: "", type: "guest", hostId: HOSTS[0].id, purpose: "",
+    name: "", phone: "", company: "", type: "driver", hostId: HOSTS[0].id, purpose: "",
   });
   const [photo, setPhoto] = useState(null);
+  const [resume, setResume] = useState(null);
   const [error, setError] = useState("");
 
   const isBlacklisted = blacklist.some(
-    (b) => b.phone.replace(/\s/g, "") === form.phone.replace(/\s/g, "") && form.phone.length > 6
+    (b) => b.phone.replace(/\D/g, "").slice(-10) === form.phone && form.phone.length === 10
   );
 
   function submit() {
@@ -485,11 +633,15 @@ function CheckInModal({ onClose, onSubmit, blacklist }) {
       setError("Please fill in name, phone, and purpose.");
       return;
     }
+    if (form.phone.length !== 10) {
+      setError("Phone number must be exactly 10 digits.");
+      return;
+    }
     if (isBlacklisted) {
       setError("This visitor is on the blacklist. Please contact the admin.");
       return;
     }
-    onSubmit({ ...form, photo });
+    onSubmit({ ...form, photo, resume: resume ? resume.name : null });
   }
 
   return (
@@ -508,8 +660,9 @@ function CheckInModal({ onClose, onSubmit, blacklist }) {
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
         <TextField label="Visitor Name" required placeholder="e.g. Suresh Kale" value={form.name}
           onChange={(e) => setForm({ ...form, name: e.target.value })} />
-        <TextField label="Phone Number" required placeholder="+91 90000 00000" value={form.phone}
-          onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+        <TextField label="Phone Number" required placeholder="9000000000" value={form.phone}
+          inputMode="numeric" maxLength={10}
+          onChange={(e) => setForm({ ...form, phone: e.target.value.replace(/\D/g, "").slice(0, 10) })} />
       </div>
 
       <TextField label="Company / Organisation" placeholder="e.g. Kale Traders (optional)" value={form.company}
@@ -548,6 +701,13 @@ function CheckInModal({ onClose, onSubmit, blacklist }) {
         <FieldLabel>Visitor Photo</FieldLabel>
         <WebcamCapture photo={photo} onCapture={setPhoto} onClear={() => setPhoto(null)} />
       </div>
+
+      {form.type === "interview" && (
+        <div style={{ marginBottom: 16 }}>
+          <FieldLabel>Resume</FieldLabel>
+          <ResumeUpload file={resume} onSelect={setResume} onClear={() => setResume(null)} />
+        </div>
+      )}
 
       {error && <div style={{ color: COLORS.danger, fontSize: "0.82rem", fontWeight: 600, marginBottom: 12 }}>{error}</div>}
 
@@ -629,18 +789,19 @@ function VisitorDetailModal({ visit, host, onClose, onCheckout, onBlacklist }) {
 }
 
 function LoginScreen({ onLogin }) {
+  const [step, setStep] = useState("choose"); // "choose" | "admin-login"
   const [pw, setPw] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [err, setErr] = useState("");
 
-  function submit(e) {
+  function submitAdmin(e) {
     if (e && e.preventDefault) e.preventDefault();
     if (pw.trim().length === 0) {
       setErr("Please enter a password");
       return;
     }
     setErr("");
-    onLogin();
+    onLogin("admin");
   }
 
   return (
@@ -661,50 +822,104 @@ function LoginScreen({ onLogin }) {
           <div style={{ color: "rgba(255,255,255,0.6)", fontSize: "0.85rem", marginTop: 4 }}>Front Desk &amp; Visitor Management</div>
         </div>
 
-        <form onSubmit={submit} style={{
-          background: "rgba(255,255,255,0.98)", borderRadius: 18, padding: "28px 26px",
-          boxShadow: "0 30px 60px -20px rgba(0,0,0,0.4)",
-        }}>
-          <div style={{ fontWeight: 800, color: COLORS.navy, fontSize: "1.05rem", marginBottom: 4 }}>Admin Login</div>
-          <div style={{ color: COLORS.slate, fontSize: "0.82rem", marginBottom: 20 }}>Enter your admin credentials</div>
-
-          <div style={{ marginBottom: 16 }}>
-            <FieldLabel>Admin ID</FieldLabel>
-            <div style={{ position: "relative" }}>
-              <input style={{ ...inputStyle, paddingLeft: 38 }} defaultValue="admin@company.com" />
-              <span style={{ position: "absolute", left: 12, top: 12, color: COLORS.slate }}><Icon name="Mail" size={16} /></span>
-            </div>
-          </div>
-
-          <div style={{ marginBottom: 6 }}>
-            <FieldLabel>Password</FieldLabel>
-            <div style={{ position: "relative" }}>
-              <input
-                type={showPw ? "text" : "password"} style={{ ...inputStyle, paddingLeft: 38, paddingRight: 38 }}
-                placeholder="••••••••" value={pw} onChange={(e) => setPw(e.target.value)}
-              />
-              <span style={{ position: "absolute", left: 12, top: 12, color: COLORS.slate }}><Icon name="Lock" size={16} /></span>
-              <button type="button" onClick={() => setShowPw(!showPw)} style={{
-                position: "absolute", right: 10, top: 8, background: "none", border: "none", cursor: "pointer", color: COLORS.slate,
-              }}>
-                <Icon name={showPw ? "EyeOff" : "Eye"} size={16} />
-              </button>
-            </div>
-          </div>
-          {err && <div style={{ color: COLORS.danger, fontSize: "0.78rem", fontWeight: 600, marginBottom: 10 }}>{err}</div>}
-
-          <button type="submit" onClick={submit} style={{
-            width: "100%", padding: "13px", borderRadius: 10, border: "none", background: COLORS.royal,
-            color: "#fff", fontWeight: 700, fontSize: "0.92rem", cursor: "pointer", marginTop: 14,
-            boxShadow: "0 10px 24px -8px rgba(30,79,217,0.55)",
+        {step === "choose" && (
+          <div style={{
+            background: "rgba(255,255,255,0.98)", borderRadius: 18, padding: "28px 26px",
+            boxShadow: "0 30px 60px -20px rgba(0,0,0,0.4)",
           }}>
-            Sign in to Dashboard
-          </button>
+            <div style={{ fontWeight: 800, color: COLORS.navy, fontSize: "1.05rem", marginBottom: 4 }}>Select how you're signing in</div>
+            <div style={{ color: COLORS.slate, fontSize: "0.82rem", marginBottom: 22 }}>Choose the screen that matches your role</div>
 
-          <div style={{ textAlign: "center", marginTop: 16, fontSize: "0.74rem", color: COLORS.slate }}>
-            Demo mode — enter any password to sign in
+            <button onClick={() => onLogin("receptionist")} style={{
+              width: "100%", display: "flex", alignItems: "center", gap: 14, padding: "16px 16px",
+              borderRadius: 14, border: "1.5px solid #E3E8F2", background: "#FAFBFD", cursor: "pointer",
+              marginBottom: 12, textAlign: "left",
+            }}>
+              <div style={{
+                width: 44, height: 44, borderRadius: 12, background: "rgba(31,157,109,0.12)",
+                display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+              }}>
+                <Icon name="UserCheck" size={22} color={COLORS.success} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 700, color: COLORS.navy, fontSize: "0.95rem" }}>Receptionist</div>
+                <div style={{ fontSize: "0.76rem", color: COLORS.slate, marginTop: 1 }}>Check visitors in &amp; out</div>
+              </div>
+              <Icon name="ArrowUpRight" size={16} color={COLORS.slate} />
+            </button>
+
+            <button onClick={() => setStep("admin-login")} style={{
+              width: "100%", display: "flex", alignItems: "center", gap: 14, padding: "16px 16px",
+              borderRadius: 14, border: "1.5px solid #E3E8F2", background: "#FAFBFD", cursor: "pointer",
+              textAlign: "left",
+            }}>
+              <div style={{
+                width: 44, height: 44, borderRadius: 12, background: "rgba(30,79,217,0.12)",
+                display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+              }}>
+                <Icon name="Lock" size={20} color={COLORS.royal} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 700, color: COLORS.navy, fontSize: "0.95rem" }}>Admin</div>
+                <div style={{ fontSize: "0.76rem", color: COLORS.slate, marginTop: 1 }}>Full dashboard, reports &amp; settings</div>
+              </div>
+              <Icon name="ArrowUpRight" size={16} color={COLORS.slate} />
+            </button>
           </div>
-        </form>
+        )}
+
+        {step === "admin-login" && (
+          <form onSubmit={submitAdmin} style={{
+            background: "rgba(255,255,255,0.98)", borderRadius: 18, padding: "28px 26px",
+            boxShadow: "0 30px 60px -20px rgba(0,0,0,0.4)",
+          }}>
+            <button type="button" onClick={() => setStep("choose")} style={{
+              border: "none", background: "none", color: COLORS.slate, fontSize: "0.78rem", fontWeight: 600,
+              cursor: "pointer", padding: 0, marginBottom: 14, display: "flex", alignItems: "center", gap: 4,
+            }}>
+              ← Back
+            </button>
+            <div style={{ fontWeight: 800, color: COLORS.navy, fontSize: "1.05rem", marginBottom: 4 }}>Admin Login</div>
+            <div style={{ color: COLORS.slate, fontSize: "0.82rem", marginBottom: 20 }}>Enter your admin credentials</div>
+
+            <div style={{ marginBottom: 16 }}>
+              <FieldLabel>Admin ID</FieldLabel>
+              <div style={{ position: "relative" }}>
+                <input style={{ ...inputStyle, paddingLeft: 38 }} defaultValue="admin@company.com" />
+                <span style={{ position: "absolute", left: 12, top: 12, color: COLORS.slate }}><Icon name="Mail" size={16} /></span>
+              </div>
+            </div>
+
+            <div style={{ marginBottom: 6 }}>
+              <FieldLabel>Password</FieldLabel>
+              <div style={{ position: "relative" }}>
+                <input
+                  type={showPw ? "text" : "password"} style={{ ...inputStyle, paddingLeft: 38, paddingRight: 38 }}
+                  placeholder="••••••••" value={pw} onChange={(e) => setPw(e.target.value)}
+                />
+                <span style={{ position: "absolute", left: 12, top: 12, color: COLORS.slate }}><Icon name="Lock" size={16} /></span>
+                <button type="button" onClick={() => setShowPw(!showPw)} style={{
+                  position: "absolute", right: 10, top: 8, background: "none", border: "none", cursor: "pointer", color: COLORS.slate,
+                }}>
+                  <Icon name={showPw ? "EyeOff" : "Eye"} size={16} />
+                </button>
+              </div>
+            </div>
+            {err && <div style={{ color: COLORS.danger, fontSize: "0.78rem", fontWeight: 600, marginBottom: 10 }}>{err}</div>}
+
+            <button type="submit" onClick={submitAdmin} style={{
+              width: "100%", padding: "13px", borderRadius: 10, border: "none", background: COLORS.royal,
+              color: "#fff", fontWeight: 700, fontSize: "0.92rem", cursor: "pointer", marginTop: 14,
+              boxShadow: "0 10px 24px -8px rgba(30,79,217,0.55)",
+            }}>
+              Sign in to Dashboard
+            </button>
+
+            <div style={{ textAlign: "center", marginTop: 16, fontSize: "0.74rem", color: COLORS.slate }}>
+              Demo mode — enter any password to sign in
+            </div>
+          </form>
+        )}
       </div>
     </div>
   );
@@ -721,8 +936,8 @@ function Sidebar({ active, setActive, onLogout, pendingCount }) {
   ];
   return (
     <div style={{
-      width: 248, background: COLORS.navy, minHeight: "100vh", display: "flex", flexDirection: "column",
-      flexShrink: 0, position: "sticky", top: 0,
+      width: 248, background: COLORS.navy, height: "100%", display: "flex", flexDirection: "column",
+      flexShrink: 0, overflowY: "auto",
     }}>
       <div style={{ padding: "26px 22px 22px", display: "flex", alignItems: "center", gap: 11 }}>
         <div style={{
@@ -811,6 +1026,124 @@ function VisitRow({ visit, host, onOpen, onCheckout }) {
   );
 }
 
+function ReceptionistRow({ visit, host, onCheckout }) {
+  const t = VISIT_TYPES.find((x) => x.id === visit.type);
+  return (
+    <div style={{
+      display: "flex", alignItems: "center", gap: 16, padding: "18px 20px", borderRadius: 16,
+      background: "#fff", border: "1px solid #EEF1F7", marginBottom: 12,
+    }}>
+      <Avatar name={visit.name} size={48} />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontWeight: 800, fontSize: "1.05rem", color: COLORS.navy }}>{visit.name}</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.85rem", color: COLORS.slate, marginTop: 3 }}>
+          <Icon name={t.icon} size={14} color={t.color} /> {t.label}
+          {host && <> · meeting {host.name}</>}
+        </div>
+      </div>
+      <div style={{ textAlign: "right", marginRight: 6 }}>
+        <div style={{ fontSize: "0.72rem", color: COLORS.slate, fontWeight: 600 }}>Checked in</div>
+        <div style={{ fontSize: "0.95rem", fontWeight: 700, color: COLORS.navy }}>{fmtTime(visit.checkIn)}</div>
+      </div>
+      <button onClick={() => onCheckout(visit.id)} style={{
+        padding: "14px 22px", borderRadius: 12, border: "none", background: COLORS.navy,
+        color: "#fff", fontWeight: 700, fontSize: "0.92rem", cursor: "pointer", whiteSpace: "nowrap",
+      }}>
+        Check-out
+      </button>
+    </div>
+  );
+}
+
+function ReceptionistView({ visits, blacklist, activeVisitors, onCheckIn, onCheckout, onLogout }) {
+  const [showCheckIn, setShowCheckIn] = useState(false);
+  const [search, setSearch] = useState("");
+  const today = new Date();
+
+  const visible = useMemo(() => {
+    if (search.trim() === "") return activeVisitors;
+    return activeVisitors.filter((v) =>
+      v.name.toLowerCase().includes(search.toLowerCase()) || v.phone.includes(search)
+    );
+  }, [activeVisitors, search]);
+
+  return (
+    <div style={{ minHeight: "100vh", background: COLORS.ice }}>
+      <div style={{
+        background: COLORS.navy, padding: "20px 24px", display: "flex",
+        alignItems: "center", justifyContent: "space-between",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{
+            width: 38, height: 38, borderRadius: 10, background: COLORS.royal,
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}>
+            <Icon name="Building2" size={19} color="#fff" />
+          </div>
+          <div>
+            <div style={{ color: "#fff", fontWeight: 800, fontSize: "1.05rem" }}>VisitorOS</div>
+            <div style={{ color: "rgba(255,255,255,0.5)", fontSize: "0.74rem" }}>Reception Desk</div>
+          </div>
+        </div>
+        <button onClick={onLogout} style={{
+          display: "flex", alignItems: "center", gap: 6, padding: "9px 14px", borderRadius: 10,
+          border: "1px solid rgba(255,255,255,0.2)", background: "transparent", color: "rgba(255,255,255,0.7)",
+          fontWeight: 600, fontSize: "0.8rem", cursor: "pointer",
+        }}>
+          <Icon name="LogOut" size={15} /> Sign out
+        </button>
+      </div>
+
+      <div style={{ padding: "24px 20px", maxWidth: 720, margin: "0 auto" }}>
+        <button onClick={() => setShowCheckIn(true)} style={{
+          width: "100%", padding: "24px", borderRadius: 18, border: "none", background: COLORS.royal,
+          color: "#fff", fontWeight: 800, fontSize: "1.25rem", cursor: "pointer", marginBottom: 24,
+          display: "flex", alignItems: "center", justifyContent: "center", gap: 12,
+          boxShadow: "0 16px 32px -12px rgba(30,79,217,0.55)",
+        }}>
+          <Icon name="UserPlus" size={26} /> New Check-in
+        </button>
+
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+          <div style={{ fontWeight: 800, color: COLORS.navy, fontSize: "1.1rem" }}>
+            Currently Inside ({activeVisitors.length})
+          </div>
+        </div>
+
+        {activeVisitors.length > 3 && (
+          <div style={{ position: "relative", marginBottom: 16 }}>
+            <span style={{ position: "absolute", left: 14, top: 14, color: COLORS.slate }}><Icon name="Search" size={17} /></span>
+            <input
+              placeholder="Search by name or phone..." value={search} onChange={(e) => setSearch(e.target.value)}
+              style={{ ...inputStyle, paddingLeft: 40, padding: "13px 14px 13px 40px", fontSize: "0.95rem" }}
+            />
+          </div>
+        )}
+
+        {visible.length === 0 ? (
+          <div style={{
+            background: "#fff", borderRadius: 16, padding: "40px 20px", textAlign: "center",
+            border: "1px solid #EEF1F7",
+          }}>
+            <Icon name="Users" size={36} style={{ opacity: 0.25, marginBottom: 12 }} />
+            <div style={{ fontSize: "0.95rem", fontWeight: 600, color: COLORS.slate }}>
+              {activeVisitors.length === 0 ? "No visitors are currently inside." : "No matching visitors found."}
+            </div>
+          </div>
+        ) : (
+          visible.map((v) => (
+            <ReceptionistRow key={v.id} visit={v} host={HOSTS.find((h) => h.id === v.hostId)} onCheckout={onCheckout} />
+          ))
+        )}
+      </div>
+
+      {showCheckIn && (
+        <CheckInModal onClose={() => setShowCheckIn(false)} onSubmit={(form) => { onCheckIn(form); setShowCheckIn(false); }} blacklist={blacklist} />
+      )}
+    </div>
+  );
+}
+
 function EmptyState({ text }) {
   return (
     <div style={{ textAlign: "center", padding: "40px 20px", color: COLORS.slate }}>
@@ -821,7 +1154,7 @@ function EmptyState({ text }) {
 }
 
 function VisitorManagementSystem() {
-  const [loggedIn, setLoggedIn] = useState(false);
+  const [role, setRole] = useState(null); // null | "receptionist" | "admin"
   const [active, setActive] = useState("dashboard");
   const [visits, setVisits] = useState(seedVisits);
   const [blacklist, setBlacklist] = useState([
@@ -887,7 +1220,20 @@ function VisitorManagementSystem() {
     });
   }, [visits, search, typeFilter]);
 
-  if (!loggedIn) return <LoginScreen onLogin={() => setLoggedIn(true)} />;
+  if (!role) return <LoginScreen onLogin={(r) => setRole(r)} />;
+
+  if (role === "receptionist") {
+    return (
+      <ReceptionistView
+        visits={visits}
+        blacklist={blacklist}
+        activeVisitors={activeVisitors}
+        onCheckIn={handleCheckIn}
+        onCheckout={handleCheckout}
+        onLogout={() => setRole(null)}
+      />
+    );
+  }
 
   const pageTitle = {
     dashboard: "Dashboard", visitors: "Active Visitors", history: "Visit History",
@@ -895,10 +1241,10 @@ function VisitorManagementSystem() {
   };
 
   return (
-    <div style={{ display: "flex", background: COLORS.ice, minHeight: "100vh" }}>
-      <Sidebar active={active} setActive={setActive} onLogout={() => setLoggedIn(false)} pendingCount={activeVisitors.length} />
+    <div style={{ display: "flex", background: COLORS.ice, height: "100vh", maxHeight: "100dvh", overflow: "hidden" }}>
+      <Sidebar active={active} setActive={setActive} onLogout={() => setRole(null)} pendingCount={activeVisitors.length} />
 
-      <div style={{ flex: 1, minWidth: 0 }}>
+      <div style={{ flex: 1, minWidth: 0, height: "100%", overflowY: "auto" }}>
         <div style={{
           padding: "20px 32px", display: "flex", justifyContent: "space-between", alignItems: "center",
           borderBottom: "1px solid #E7EBF3", background: "#fff", position: "sticky", top: 0, zIndex: 10,
@@ -1094,17 +1440,36 @@ function VisitorManagementSystem() {
               <div style={{ background: "#fff", borderRadius: 16, padding: "22px 24px", border: "1px solid #EEF1F7" }}>
                 <div style={{ fontWeight: 800, color: COLORS.navy, marginBottom: 16 }}>Export Reports</div>
                 <div style={{ fontSize: "0.82rem", color: COLORS.slate, marginBottom: 18, lineHeight: 1.6 }}>
-                  Once connected to a backend, daily, weekly and monthly visitor reports can be exported to CSV/Excel from here.
+                  Download a CSV file (opens directly in Excel) based on the visitor data currently in the system.
                 </div>
-                {["Today's Visitor Log", "This Week Summary", "Monthly Department Report", "Blacklist Audit Log"].map((r) => (
-                  <button key={r} style={{
-                    width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
-                    padding: "12px 14px", borderRadius: 10, border: "1.5px solid #E3E8F2", background: "#FAFBFD",
-                    color: COLORS.navy, fontWeight: 600, fontSize: "0.84rem", marginBottom: 8, cursor: "pointer",
-                  }}>
-                    {r} <Icon name="ArrowUpRight" size={15} color={COLORS.slate} />
-                  </button>
-                ))}
+                <button onClick={() => exportTodaysVisitorLog(visits)} style={{
+                  width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
+                  padding: "12px 14px", borderRadius: 10, border: "1.5px solid #E3E8F2", background: "#FAFBFD",
+                  color: COLORS.navy, fontWeight: 600, fontSize: "0.84rem", marginBottom: 8, cursor: "pointer",
+                }}>
+                  Today's Visitor Log <Icon name="ArrowUpRight" size={15} color={COLORS.slate} />
+                </button>
+                <button onClick={() => exportWeekSummary(visits)} style={{
+                  width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
+                  padding: "12px 14px", borderRadius: 10, border: "1.5px solid #E3E8F2", background: "#FAFBFD",
+                  color: COLORS.navy, fontWeight: 600, fontSize: "0.84rem", marginBottom: 8, cursor: "pointer",
+                }}>
+                  This Week Summary <Icon name="ArrowUpRight" size={15} color={COLORS.slate} />
+                </button>
+                <button onClick={() => exportMonthlyDepartmentReport(visits)} style={{
+                  width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
+                  padding: "12px 14px", borderRadius: 10, border: "1.5px solid #E3E8F2", background: "#FAFBFD",
+                  color: COLORS.navy, fontWeight: 600, fontSize: "0.84rem", marginBottom: 8, cursor: "pointer",
+                }}>
+                  Monthly Department Report <Icon name="ArrowUpRight" size={15} color={COLORS.slate} />
+                </button>
+                <button onClick={() => exportBlacklistAuditLog(blacklist)} style={{
+                  width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
+                  padding: "12px 14px", borderRadius: 10, border: "1.5px solid #E3E8F2", background: "#FAFBFD",
+                  color: COLORS.navy, fontWeight: 600, fontSize: "0.84rem", marginBottom: 8, cursor: "pointer",
+                }}>
+                  Blacklist Audit Log <Icon name="ArrowUpRight" size={15} color={COLORS.slate} />
+                </button>
               </div>
             </div>
           )}
