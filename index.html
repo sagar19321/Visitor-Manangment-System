@@ -21,6 +21,183 @@
     outline: 2px solid #1E4FD9; outline-offset: 1px;
   }
   button { font-family: inherit; }
+
+  /* ===== LOGIN PAGE ANIMATIONS ===== */
+  @keyframes fadeSlideUp {
+    from { opacity: 0; transform: translateY(32px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; } to { opacity: 1; }
+  }
+  @keyframes floatOrb {
+    0%,100% { transform: translateY(0px) scale(1); }
+    50%      { transform: translateY(-28px) scale(1.04); }
+  }
+  @keyframes floatOrb2 {
+    0%,100% { transform: translateY(0px) scale(1); }
+    50%      { transform: translateY(22px) scale(0.97); }
+  }
+  @keyframes shimmer {
+    0%   { background-position: -400px 0; }
+    100% { background-position: 400px 0; }
+  }
+  @keyframes pulseRing {
+    0%   { transform: scale(1);   opacity: 0.6; }
+    70%  { transform: scale(1.6); opacity: 0; }
+    100% { transform: scale(1.6); opacity: 0; }
+  }
+  @keyframes scanLine {
+    0%   { top: 0%; opacity: 0.7; }
+    50%  { opacity: 1; }
+    100% { top: 100%; opacity: 0.7; }
+  }
+  @keyframes tickerScroll {
+    0%   { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+  @keyframes dotBlink {
+    0%,100% { opacity: 0.3; transform: scale(0.8); }
+    50%      { opacity: 1;   transform: scale(1.2); }
+  }
+  @keyframes cardEntrance {
+    from { opacity: 0; transform: translateY(20px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  @keyframes logoSpin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+  }
+  @keyframes gradientShift {
+    0%   { background-position: 0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+  @keyframes inputFocusGlow {
+    from { box-shadow: 0 0 0 0 rgba(30,79,217,0.4); }
+    to   { box-shadow: 0 0 0 6px rgba(30,79,217,0); }
+  }
+
+  .login-orb1 { animation: floatOrb 7s ease-in-out infinite; }
+  .login-orb2 { animation: floatOrb2 9s ease-in-out infinite; }
+  .login-orb3 { animation: floatOrb 11s ease-in-out infinite 2s; }
+  .login-panel { animation: cardEntrance 0.6s cubic-bezier(0.34,1.2,0.64,1) both; }
+  .login-header { animation: fadeSlideUp 0.5s ease both; }
+  .choose-card { animation: cardEntrance 0.55s cubic-bezier(0.34,1.2,0.64,1) both; }
+  .admin-card  { animation: cardEntrance 0.45s cubic-bezier(0.34,1.2,0.64,1) both; }
+
+  .role-btn {
+    transition: all 0.2s cubic-bezier(0.34,1.2,0.64,1) !important;
+  }
+  .role-btn:hover {
+    transform: translateY(-2px) scale(1.01) !important;
+    box-shadow: 0 12px 30px -8px rgba(11,30,61,0.18) !important;
+    border-color: #1E4FD9 !important;
+  }
+  .role-btn:active {
+    transform: scale(0.98) !important;
+  }
+
+  .login-submit-btn {
+    transition: all 0.18s ease !important;
+    position: relative;
+    overflow: hidden;
+  }
+  .login-submit-btn::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.18) 0%, transparent 60%);
+    pointer-events: none;
+  }
+  .login-submit-btn:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 16px 36px -8px rgba(30,79,217,0.6) !important;
+  }
+  .login-submit-btn:active { transform: translateY(0) scale(0.98) !important; }
+
+  .scan-line {
+    position: absolute; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(79,143,255,0.8), transparent);
+    animation: scanLine 2.5s linear infinite;
+    pointer-events: none;
+  }
+
+  .ticker-track { display: flex; animation: tickerScroll 22s linear infinite; }
+
+  .live-dot { display: inline-block; border-radius: 50%; }
+  .live-dot:nth-child(1) { animation: dotBlink 1.2s ease-in-out infinite 0s; }
+  .live-dot:nth-child(2) { animation: dotBlink 1.2s ease-in-out infinite 0.2s; }
+  .live-dot:nth-child(3) { animation: dotBlink 1.2s ease-in-out infinite 0.4s; }
+
+  .login-input-wrap input:focus {
+    border-color: #1E4FD9 !important;
+    box-shadow: 0 0 0 3px rgba(30,79,217,0.12) !important;
+    background: #fff !important;
+  }
+
+  .pulse-ring {
+    position: absolute; inset: -6px; border-radius: 50%;
+    border: 2px solid rgba(31,157,109,0.5);
+    animation: pulseRing 2s ease-out infinite;
+  }
+
+  .reception-img-wrap {
+    position: relative; overflow: hidden; border-radius: 20px;
+  }
+  .reception-img-wrap::after {
+    content: ""; position: absolute; inset: 0;
+    background: linear-gradient(0deg, rgba(11,30,61,0.55) 0%, transparent 55%);
+    pointer-events: none;
+  }
+
+  /* ===== RESPONSIVE ===== */
+
+  /* Login grid: two-col → one-col on mobile */
+  .login-grid {
+    display: grid;
+    grid-template-columns: 1fr 420px;
+    gap: 40px;
+    align-items: center;
+    width: 100%;
+    max-width: 980px;
+  }
+  @media (max-width: 767px) {
+    .login-grid {
+      grid-template-columns: 1fr !important;
+      gap: 0 !important;
+      max-width: 440px !important;
+    }
+    .login-left-panel { display: none !important; }
+
+    /* Allow scrolling on login on short mobile screens */
+    body { overflow: auto !important; height: auto !important; }
+    html { overflow: auto !important; height: auto !important; }
+    #root { height: auto !important; min-height: 100dvh; }
+  }
+
+  /* Visit row responsive — hide type/host on mobile */
+  @media (max-width: 640px) {
+    .visit-row-grid {
+      grid-template-columns: auto 1fr auto auto !important;
+      gap: 8px !important;
+      padding: 11px 12px !important;
+    }
+    .visit-col-type { display: none !important; }
+    .visit-col-host { display: none !important; }
+  }
+
+  /* Search/filter bar stacks on mobile */
+  @media (max-width: 600px) {
+    .search-bar-wrap { flex-direction: column !important; }
+    .search-bar-wrap > * { width: 100% !important; max-width: 100% !important; }
+  }
+
+  /* Receptionist header wraps on mobile */
+  @media (max-width: 520px) {
+    .rec-header-buttons { flex-wrap: wrap !important; gap: 6px !important; }
+    .rec-header-btn { font-size: 0.73rem !important; padding: 7px 10px !important; }
+  }
 </style>
 </head>
 <body>
@@ -28,6 +205,33 @@
 
 <script type="text/babel" data-presets="react">
 const { useState, useMemo, useEffect, useRef } = React;
+
+/* --- Responsive hook --- */
+function useWindowWidth() {
+  const [w, setW] = useState(typeof window !== "undefined" ? window.innerWidth : 1200);
+  useEffect(() => {
+    const h = () => setW(window.innerWidth);
+    window.addEventListener("resize", h);
+    return () => window.removeEventListener("resize", h);
+  }, []);
+  return w;
+}
+
+/* ---------- Reception credentials (stored locally on this device) ---------- */
+const RECEPTION_CREDS_KEY = "vos_reception_credentials";
+function loadReceptionCreds() {
+  try {
+    const raw = localStorage.getItem(RECEPTION_CREDS_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && parsed.id && parsed.password) return parsed;
+    }
+  } catch (e) {}
+  return { id: "reception", password: "reception123" };
+}
+function saveReceptionCreds(creds) {
+  try { localStorage.setItem(RECEPTION_CREDS_KEY, JSON.stringify(creds)); } catch (e) {}
+}
 
 /* ---------- Icon helper: self-contained inline SVG (no external icon library needed) ---------- */
 const ICON_PATHS = {
@@ -278,9 +482,9 @@ function TypeIcon({ type, size = 14 }) {
 function StatCard({ label, value, delta, iconName, accent }) {
   return (
     <div style={{
-      background: "#fff", borderRadius: "16px", padding: "20px 22px",
+      background: "#fff", borderRadius: "16px", padding: "18px 20px",
       boxShadow: "0 1px 2px rgba(11,30,61,0.06), 0 8px 24px -16px rgba(11,30,61,0.12)",
-      border: "1px solid rgba(11,30,61,0.06)", flex: 1, minWidth: "200px",
+      border: "1px solid rgba(11,30,61,0.06)", minWidth: 0,
       position: "relative", overflow: "hidden",
     }}>
       <div style={{
@@ -1058,144 +1262,675 @@ function AddHostModal({ onClose, onSubmit }) {
   );
 }
 
-function LoginScreen({ onLogin }) {
-  const [step, setStep] = useState("choose"); // "choose" | "admin-login"
-  const [pw, setPw] = useState("");
-  const [showPw, setShowPw] = useState(false);
-  const [err, setErr] = useState("");
+/* ── Live clock for login ── */
+function LiveClock() {
+  const [now, setNow] = useState(new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  const time = now.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: true });
+  const date = now.toLocaleDateString("en-IN", { weekday: "long", day: "2-digit", month: "long", year: "numeric" });
+  return (
+    <div style={{ textAlign: "center" }}>
+      <div style={{ fontSize: "2.8rem", fontWeight: 800, color: "#fff", letterSpacing: "-0.03em", lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>
+        {time}
+      </div>
+      <div style={{ fontSize: "0.85rem", color: "rgba(255,255,255,0.65)", marginTop: 4, fontWeight: 500 }}>{date}</div>
+    </div>
+  );
+}
 
-  function submitAdmin(e) {
-    if (e && e.preventDefault) e.preventDefault();
-    if (pw.trim().length === 0) {
-      setErr("Please enter a password");
-      return;
-    }
-    setErr("");
-    onLogin("admin");
-  }
-
+/* ── Animated stat pill ── */
+function StatPill({ icon, label, value, color }) {
   return (
     <div style={{
-      minHeight: "100vh", background: `linear-gradient(160deg, ${COLORS.navy} 0%, #0E2A52 55%, ${COLORS.royalDark} 100%)`,
-      display: "flex", alignItems: "center", justifyContent: "center", padding: 20,
+      display: "flex", alignItems: "center", gap: 10, padding: "10px 14px",
+      background: "rgba(255,255,255,0.08)", borderRadius: 12, border: "1px solid rgba(255,255,255,0.12)",
+      backdropFilter: "blur(8px)",
     }}>
-      <div style={{ width: "100%", maxWidth: 420 }}>
-        <div style={{ textAlign: "center", marginBottom: 28 }}>
-          <div style={{
-            width: 58, height: 58, borderRadius: 16, background: "rgba(255,255,255,0.1)",
-            display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px",
-            border: "1px solid rgba(255,255,255,0.15)",
-          }}>
-            <Icon name="Building2" size={28} color="#fff" />
-          </div>
-          <div style={{ color: "#fff", fontWeight: 800, fontSize: "1.5rem", letterSpacing: "-0.02em" }}>VisitorOS</div>
-          <div style={{ color: "rgba(255,255,255,0.6)", fontSize: "0.85rem", marginTop: 4 }}>Front Desk &amp; Visitor Management</div>
-        </div>
-
-        {step === "choose" && (
-          <div style={{
-            background: "rgba(255,255,255,0.98)", borderRadius: 18, padding: "28px 26px",
-            boxShadow: "0 30px 60px -20px rgba(0,0,0,0.4)",
-          }}>
-            <div style={{ fontWeight: 800, color: COLORS.navy, fontSize: "1.05rem", marginBottom: 4 }}>Select how you're signing in</div>
-            <div style={{ color: COLORS.slate, fontSize: "0.82rem", marginBottom: 22 }}>Choose the screen that matches your role</div>
-
-            <button onClick={() => onLogin("receptionist")} style={{
-              width: "100%", display: "flex", alignItems: "center", gap: 14, padding: "16px 16px",
-              borderRadius: 14, border: "1.5px solid #E3E8F2", background: "#FAFBFD", cursor: "pointer",
-              marginBottom: 12, textAlign: "left",
-            }}>
-              <div style={{
-                width: 44, height: 44, borderRadius: 12, background: "rgba(31,157,109,0.12)",
-                display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-              }}>
-                <Icon name="UserCheck" size={22} color={COLORS.success} />
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 700, color: COLORS.navy, fontSize: "0.95rem" }}>Receptionist</div>
-                <div style={{ fontSize: "0.76rem", color: COLORS.slate, marginTop: 1 }}>Check visitors in &amp; out</div>
-              </div>
-              <Icon name="ArrowUpRight" size={16} color={COLORS.slate} />
-            </button>
-
-            <button onClick={() => setStep("admin-login")} style={{
-              width: "100%", display: "flex", alignItems: "center", gap: 14, padding: "16px 16px",
-              borderRadius: 14, border: "1.5px solid #E3E8F2", background: "#FAFBFD", cursor: "pointer",
-              textAlign: "left",
-            }}>
-              <div style={{
-                width: 44, height: 44, borderRadius: 12, background: "rgba(30,79,217,0.12)",
-                display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-              }}>
-                <Icon name="Lock" size={20} color={COLORS.royal} />
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 700, color: COLORS.navy, fontSize: "0.95rem" }}>Admin</div>
-                <div style={{ fontSize: "0.76rem", color: COLORS.slate, marginTop: 1 }}>Full dashboard, reports &amp; settings</div>
-              </div>
-              <Icon name="ArrowUpRight" size={16} color={COLORS.slate} />
-            </button>
-          </div>
-        )}
-
-        {step === "admin-login" && (
-          <form onSubmit={submitAdmin} style={{
-            background: "rgba(255,255,255,0.98)", borderRadius: 18, padding: "28px 26px",
-            boxShadow: "0 30px 60px -20px rgba(0,0,0,0.4)",
-          }}>
-            <button type="button" onClick={() => setStep("choose")} style={{
-              border: "none", background: "none", color: COLORS.slate, fontSize: "0.78rem", fontWeight: 600,
-              cursor: "pointer", padding: 0, marginBottom: 14, display: "flex", alignItems: "center", gap: 4,
-            }}>
-              ← Back
-            </button>
-            <div style={{ fontWeight: 800, color: COLORS.navy, fontSize: "1.05rem", marginBottom: 4 }}>Admin Login</div>
-            <div style={{ color: COLORS.slate, fontSize: "0.82rem", marginBottom: 20 }}>Enter your admin credentials</div>
-
-            <div style={{ marginBottom: 16 }}>
-              <FieldLabel>Admin ID</FieldLabel>
-              <div style={{ position: "relative" }}>
-                <input style={{ ...inputStyle, paddingLeft: 38 }} defaultValue="admin@company.com" />
-                <span style={{ position: "absolute", left: 12, top: 12, color: COLORS.slate }}><Icon name="Mail" size={16} /></span>
-              </div>
-            </div>
-
-            <div style={{ marginBottom: 6 }}>
-              <FieldLabel>Password</FieldLabel>
-              <div style={{ position: "relative" }}>
-                <input
-                  type={showPw ? "text" : "password"} style={{ ...inputStyle, paddingLeft: 38, paddingRight: 38 }}
-                  placeholder="••••••••" value={pw} onChange={(e) => setPw(e.target.value)}
-                />
-                <span style={{ position: "absolute", left: 12, top: 12, color: COLORS.slate }}><Icon name="Lock" size={16} /></span>
-                <button type="button" onClick={() => setShowPw(!showPw)} style={{
-                  position: "absolute", right: 10, top: 8, background: "none", border: "none", cursor: "pointer", color: COLORS.slate,
-                }}>
-                  <Icon name={showPw ? "EyeOff" : "Eye"} size={16} />
-                </button>
-              </div>
-            </div>
-            {err && <div style={{ color: COLORS.danger, fontSize: "0.78rem", fontWeight: 600, marginBottom: 10 }}>{err}</div>}
-
-            <button type="submit" onClick={submitAdmin} style={{
-              width: "100%", padding: "13px", borderRadius: 10, border: "none", background: COLORS.royal,
-              color: "#fff", fontWeight: 700, fontSize: "0.92rem", cursor: "pointer", marginTop: 14,
-              boxShadow: "0 10px 24px -8px rgba(30,79,217,0.55)",
-            }}>
-              Sign in to Dashboard
-            </button>
-
-            <div style={{ textAlign: "center", marginTop: 16, fontSize: "0.74rem", color: COLORS.slate }}>
-              Demo mode — enter any password to sign in
-            </div>
-          </form>
-        )}
+      <div style={{
+        width: 32, height: 32, borderRadius: 8, background: color + "28",
+        display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+      }}>
+        <Icon name={icon} size={15} color={color} />
+      </div>
+      <div>
+        <div style={{ fontSize: "1.1rem", fontWeight: 800, color: "#fff", lineHeight: 1 }}>{value}</div>
+        <div style={{ fontSize: "0.68rem", color: "rgba(255,255,255,0.55)", marginTop: 1, fontWeight: 600 }}>{label}</div>
       </div>
     </div>
   );
 }
 
-function Sidebar({ active, setActive, onLogout, pendingCount }) {
+/* ── Reception SVG illustration ── */
+function ReceptionIllustration() {
+  return (
+    <svg viewBox="0 0 420 260" fill="none" xmlns="http://www.w3.org/2000/svg"
+      style={{ width: "100%", height: "100%", borderRadius: 16 }}>
+      {/* Background */}
+      <rect width="420" height="260" rx="16" fill="url(#bgGrad)" />
+      {/* Floor */}
+      <ellipse cx="210" cy="240" rx="200" ry="18" fill="rgba(0,0,0,0.25)" />
+      {/* Back wall accent */}
+      <rect x="30" y="30" width="360" height="180" rx="12" fill="rgba(255,255,255,0.04)" />
+      {/* Reception desk - main body */}
+      <rect x="60" y="160" width="300" height="65" rx="10" fill="url(#deskGrad)" />
+      <rect x="60" y="160" width="300" height="12" rx="10" fill="rgba(255,255,255,0.18)" />
+      {/* Desk front panel detail */}
+      <rect x="80" y="178" width="80" height="40" rx="6" fill="rgba(255,255,255,0.06)" />
+      <rect x="170" y="178" width="80" height="40" rx="6" fill="rgba(255,255,255,0.06)" />
+      <rect x="260" y="178" width="80" height="40" rx="6" fill="rgba(255,255,255,0.06)" />
+      {/* Monitor */}
+      <rect x="170" y="110" width="80" height="52" rx="6" fill="#0D1B38" />
+      <rect x="172" y="112" width="76" height="48" rx="5" fill="#1a2d55" />
+      {/* Screen content */}
+      <rect x="178" y="118" width="60" height="6" rx="2" fill="rgba(79,143,255,0.7)" />
+      <rect x="178" y="128" width="40" height="3" rx="1.5" fill="rgba(255,255,255,0.3)" />
+      <rect x="178" y="134" width="50" height="3" rx="1.5" fill="rgba(255,255,255,0.2)" />
+      <rect x="178" y="140" width="35" height="3" rx="1.5" fill="rgba(255,255,255,0.15)" />
+      {/* Monitor stand */}
+      <rect x="204" y="162" width="12" height="8" rx="2" fill="#0D1B38" />
+      <rect x="198" y="168" width="24" height="3" rx="1.5" fill="#0D1B38" />
+      {/* Receptionist - body */}
+      <ellipse cx="135" cy="195" rx="26" ry="8" fill="rgba(0,0,0,0.15)" />
+      <rect x="117" y="148" width="36" height="50" rx="10" fill="#1E4FD9" />
+      {/* Collar / shirt detail */}
+      <polygon points="135,148 127,160 135,165 143,160" fill="white" opacity="0.9" />
+      {/* Receptionist - head */}
+      <circle cx="135" cy="132" r="20" fill="#FBBF9A" />
+      {/* Hair */}
+      <path d="M115 128 Q115 108 135 108 Q155 108 155 128 L152 126 Q148 110 135 110 Q122 110 118 126 Z" fill="#4B2E0A" />
+      {/* Headset arc */}
+      <path d="M117 126 Q117 108 135 108 Q153 108 153 126" stroke="#333" strokeWidth="3" fill="none" />
+      <circle cx="117" cy="128" r="5" fill="#555" />
+      <circle cx="153" cy="128" r="5" fill="#555" />
+      {/* Mic */}
+      <line x1="117" y1="133" x2="110" y2="140" stroke="#555" strokeWidth="2.5" />
+      <circle cx="109" cy="142" r="3" fill="#777" />
+      {/* Eyes */}
+      <circle cx="129" cy="130" r="2.5" fill="#3B2506" />
+      <circle cx="141" cy="130" r="2.5" fill="#3B2506" />
+      <circle cx="130" cy="129" r="0.8" fill="white" />
+      <circle cx="142" cy="129" r="0.8" fill="white" />
+      {/* Smile */}
+      <path d="M129 137 Q135 141 141 137" stroke="#C0714A" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+      {/* Arm & hand gesture */}
+      <path d="M151 165 Q168 158 172 165" stroke="#1a3fad" strokeWidth="6" strokeLinecap="round" fill="none" />
+      <circle cx="172" cy="165" r="6" fill="#FBBF9A" />
+      {/* Desk items - phone */}
+      <rect x="250" y="152" width="32" height="20" rx="4" fill="#0D1B38" />
+      <rect x="252" y="154" width="28" height="14" rx="3" fill="#1a2d55" />
+      {/* Nameplate */}
+      <rect x="100" y="172" width="70" height="14" rx="3" fill="rgba(255,255,255,0.12)" />
+      <rect x="106" y="176" width="45" height="3" rx="1.5" fill="rgba(255,255,255,0.5)" />
+      <rect x="106" y="181" width="30" height="2" rx="1" fill="rgba(255,255,255,0.25)" />
+      {/* Visitor badge on desk */}
+      <rect x="298" y="155" width="22" height="28" rx="4" fill="rgba(255,255,255,0.18)" />
+      <rect x="301" y="158" width="16" height="10" rx="2" fill="rgba(79,143,255,0.6)" />
+      <rect x="301" y="171" width="16" height="2" rx="1" fill="rgba(255,255,255,0.4)" />
+      <rect x="301" y="175" width="10" height="2" rx="1" fill="rgba(255,255,255,0.25)" />
+      {/* Plants */}
+      <rect x="56" y="140" width="10" height="30" rx="3" fill="#2D5A27" />
+      <ellipse cx="61" cy="138" rx="14" ry="16" fill="#3A7A32" />
+      <ellipse cx="54" cy="142" rx="9" ry="12" fill="#4A9040" />
+      <ellipse cx="68" cy="143" rx="9" ry="12" fill="#4A9040" />
+      <rect x="350" y="145" width="10" height="30" rx="3" fill="#2D5A27" />
+      <ellipse cx="355" cy="143" rx="14" ry="16" fill="#3A7A32" />
+      <ellipse cx="348" cy="147" rx="9" ry="12" fill="#4A9040" />
+      <ellipse cx="362" cy="148" rx="9" ry="12" fill="#4A9040" />
+      {/* Company logo sign on wall */}
+      <rect x="165" y="42" width="90" height="40" rx="8" fill="rgba(255,255,255,0.1)" stroke="rgba(255,255,255,0.18)" strokeWidth="1" />
+      <circle cx="185" cy="62" rx="10" r="10" fill="rgba(30,79,217,0.6)" />
+      <rect x="200" y="56" width="46" height="5" rx="2.5" fill="rgba(255,255,255,0.6)" />
+      <rect x="200" y="65" width="32" height="3" rx="1.5" fill="rgba(255,255,255,0.35)" />
+      {/* Floating particles */}
+      <circle cx="80" cy="80" r="3" fill="rgba(79,143,255,0.5)" />
+      <circle cx="340" cy="90" r="2" fill="rgba(31,157,109,0.5)" />
+      <circle cx="300" cy="55" r="4" fill="rgba(245,166,35,0.4)" />
+      <circle cx="90" cy="50" r="2.5" fill="rgba(255,255,255,0.2)" />
+      <defs>
+        <linearGradient id="bgGrad" x1="0" y1="0" x2="420" y2="260" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#0B1E3D" />
+          <stop offset="55%" stopColor="#0E2A52" />
+          <stop offset="100%" stopColor="#163CAD" />
+        </linearGradient>
+        <linearGradient id="deskGrad" x1="60" y1="160" x2="360" y2="225" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#1a3060" />
+          <stop offset="100%" stopColor="#0D1B38" />
+        </linearGradient>
+      </defs>
+    </svg>
+  );
+}
+
+/* ── Ticker bar ── */
+function TickerBar() {
+  const items = [
+    "🟢 Visitor Management System Active",
+    "📋 Today's log is syncing",
+    "🔒 Secure entry protocol enabled",
+    "📞 Helpdesk: +91 98220 00000",
+    "🏢 Welcome to VisitorOS — Front Desk Console",
+    "⏱ All check-ins are time-stamped automatically",
+  ];
+  const text = items.join("   •   ") + "   •   " + items.join("   •   ");
+  return (
+    <div style={{
+      overflow: "hidden", background: "rgba(255,255,255,0.07)",
+      borderTop: "1px solid rgba(255,255,255,0.1)",
+      padding: "8px 0", position: "absolute", bottom: 0, left: 0, right: 0,
+    }}>
+      <div className="ticker-track" style={{
+        fontSize: "0.74rem", color: "rgba(255,255,255,0.55)", fontWeight: 500,
+        whiteSpace: "nowrap", willChange: "transform",
+      }}>
+        <span style={{ paddingRight: 60 }}>{text}</span>
+        <span style={{ paddingRight: 60 }}>{text}</span>
+      </div>
+    </div>
+  );
+}
+
+function LoginScreen({ onLogin }) {
+  const [step, setStep] = useState("choose");
+  const [pw, setPw] = useState("");
+  const [showPw, setShowPw] = useState(false);
+  const [err, setErr] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  /* Reception login fields */
+  const [recId, setRecId] = useState("");
+  const [recPw, setRecPw] = useState("");
+  const [showRecPw, setShowRecPw] = useState(false);
+  const [recErr, setRecErr] = useState("");
+  const [recLoading, setRecLoading] = useState(false);
+
+  function submitAdmin(e) {
+    if (e && e.preventDefault) e.preventDefault();
+    if (pw.trim().length === 0) { setErr("Please enter your password"); return; }
+    setErr("");
+    setLoading(true);
+    setTimeout(() => { setLoading(false); onLogin("admin"); }, 900);
+  }
+
+  function submitReception(e) {
+    if (e && e.preventDefault) e.preventDefault();
+    if (recId.trim().length === 0 || recPw.trim().length === 0) {
+      setRecErr("Please enter both ID and password");
+      return;
+    }
+    const creds = loadReceptionCreds();
+    if (recId.trim().toLowerCase() !== creds.id.trim().toLowerCase() || recPw !== creds.password) {
+      setRecErr("Invalid ID or password");
+      return;
+    }
+    setRecErr("");
+    setRecLoading(true);
+    setTimeout(() => { setRecLoading(false); onLogin("receptionist"); }, 700);
+  }
+
+  return (
+    <div style={{
+      minHeight: "100vh", position: "relative", overflow: "auto",
+      background: `linear-gradient(160deg, ${COLORS.navy} 0%, #0E2A52 50%, #122570 100%)`,
+      display: "flex", flexDirection: "column",
+    }}>
+      {/* ── Floating background orbs ── */}
+      <div className="login-orb1" style={{
+        position: "absolute", width: 500, height: 500, borderRadius: "50%", top: -180, right: -120,
+        background: "radial-gradient(circle, rgba(30,79,217,0.25) 0%, transparent 70%)",
+        pointerEvents: "none",
+      }} />
+      <div className="login-orb2" style={{
+        position: "absolute", width: 400, height: 400, borderRadius: "50%", bottom: -120, left: -100,
+        background: "radial-gradient(circle, rgba(79,143,255,0.18) 0%, transparent 70%)",
+        pointerEvents: "none",
+      }} />
+      <div className="login-orb3" style={{
+        position: "absolute", width: 240, height: 240, borderRadius: "50%", top: "40%", left: "30%",
+        background: "radial-gradient(circle, rgba(31,157,109,0.12) 0%, transparent 70%)",
+        pointerEvents: "none",
+      }} />
+      {/* Grid overlay */}
+      <div style={{
+        position: "absolute", inset: 0, opacity: 0.04, pointerEvents: "none",
+        backgroundImage: "linear-gradient(rgba(255,255,255,0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.6) 1px, transparent 1px)",
+        backgroundSize: "48px 48px",
+      }} />
+
+      {/* ── Main layout ── */}
+      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "24px 16px 64px" }}>
+        <div className="login-grid">
+
+          {/* ══ LEFT PANEL ══ */}
+          <div className="login-header login-left-panel" style={{ display: "flex", flexDirection: "column", gap: 28 }}>
+            {/* Brand */}
+            <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 4 }}>
+              <div style={{
+                width: 52, height: 52, borderRadius: 15, background: COLORS.royal,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                boxShadow: "0 8px 24px -6px rgba(30,79,217,0.7)",
+              }}>
+                <Icon name="Building2" size={26} color="#fff" />
+              </div>
+              <div>
+                <div style={{ color: "#fff", fontWeight: 800, fontSize: "1.6rem", letterSpacing: "-0.03em", lineHeight: 1 }}>VisitorOS</div>
+                <div style={{ color: "rgba(255,255,255,0.5)", fontSize: "0.78rem", fontWeight: 500, marginTop: 2 }}>Front Desk & Visitor Management</div>
+              </div>
+            </div>
+
+            {/* Clock */}
+            <LiveClock />
+
+            {/* Reception illustration */}
+            <div className="reception-img-wrap" style={{
+              position: "relative", borderRadius: 20, overflow: "hidden",
+              border: "1px solid rgba(255,255,255,0.12)",
+              boxShadow: "0 24px 60px -16px rgba(0,0,0,0.5)",
+            }}>
+              <ReceptionIllustration />
+              {/* Scan line */}
+              <div className="scan-line" />
+              {/* Bottom overlay caption */}
+              <div style={{
+                position: "absolute", bottom: 0, left: 0, right: 0, zIndex: 2,
+                padding: "16px 20px",
+                background: "linear-gradient(0deg, rgba(11,30,61,0.85) 0%, transparent 100%)",
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <div style={{ display: "flex", gap: 3 }}>
+                    <div className="live-dot" style={{ width: 6, height: 6, background: COLORS.success }} />
+                    <div className="live-dot" style={{ width: 6, height: 6, background: COLORS.success }} />
+                    <div className="live-dot" style={{ width: 6, height: 6, background: COLORS.success }} />
+                  </div>
+                  <span style={{ fontSize: "0.76rem", color: "rgba(255,255,255,0.7)", fontWeight: 600 }}>Reception Desk — Online</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Stats strip */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+              <StatPill icon="Users" label="Visitors Today" value="5" color={COLORS.sky} />
+              <StatPill icon="CheckCircle2" label="Checked In" value="2" color={COLORS.success} />
+              <StatPill icon="Clock" label="Avg. Visit" value="35m" color={COLORS.amber} />
+            </div>
+          </div>
+
+          {/* ══ RIGHT PANEL ══ */}
+          <div>
+            {step === "choose" && (
+              <div className="choose-card" style={{
+                background: "rgba(255,255,255,0.97)", borderRadius: 24, padding: "32px 28px",
+                boxShadow: "0 32px 80px -20px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.12)",
+              }}>
+                {/* Header */}
+                <div style={{ marginBottom: 26 }}>
+                  <div style={{
+                    display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 12px",
+                    borderRadius: 99, background: "rgba(31,157,109,0.1)", marginBottom: 12,
+                    border: "1px solid rgba(31,157,109,0.2)",
+                  }}>
+                    <div style={{ width: 7, height: 7, borderRadius: "50%", background: COLORS.success }} />
+                    <span style={{ fontSize: "0.72rem", fontWeight: 700, color: COLORS.success }}>SYSTEM ONLINE</span>
+                  </div>
+                  <div style={{ fontWeight: 800, color: COLORS.navy, fontSize: "1.3rem", letterSpacing: "-0.02em", lineHeight: 1.2 }}>
+                    Welcome Back 👋
+                  </div>
+                  <div style={{ color: COLORS.slate, fontSize: "0.83rem", marginTop: 6, lineHeight: 1.5 }}>
+                    Select your role to access the dashboard. All actions are logged for security.
+                  </div>
+                </div>
+
+                {/* Receptionist role */}
+                <button className="role-btn" onClick={() => setStep("reception-login")} style={{
+                  width: "100%", display: "flex", alignItems: "center", gap: 16, padding: "18px 18px",
+                  borderRadius: 16, border: "2px solid #E3E8F2", background: "#FAFBFD", cursor: "pointer",
+                  marginBottom: 14, textAlign: "left",
+                }}>
+                  <div style={{ position: "relative" }}>
+                    <div style={{
+                      width: 50, height: 50, borderRadius: 14, background: "rgba(31,157,109,0.1)",
+                      display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+                    }}>
+                      <Icon name="UserCheck" size={24} color={COLORS.success} />
+                    </div>
+                    <div className="pulse-ring" />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 800, color: COLORS.navy, fontSize: "1rem" }}>Receptionist</div>
+                    <div style={{ fontSize: "0.76rem", color: COLORS.slate, marginTop: 3, lineHeight: 1.4 }}>
+                      Visitor check-in / check-out • Badge printing
+                    </div>
+                    <div style={{ display: "flex", gap: 6, marginTop: 7, flexWrap: "wrap" }}>
+                      {["Check-in", "Walk-ins", "Badge"].map((tag) => (
+                        <span key={tag} style={{
+                          fontSize: "0.65rem", fontWeight: 700, padding: "2px 8px", borderRadius: 99,
+                          background: "rgba(31,157,109,0.1)", color: COLORS.success,
+                        }}>{tag}</span>
+                      ))}
+                    </div>
+                  </div>
+                  <div style={{
+                    width: 34, height: 34, borderRadius: 10, background: "rgba(31,157,109,0.08)",
+                    display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+                  }}>
+                    <Icon name="ArrowUpRight" size={17} color={COLORS.success} />
+                  </div>
+                </button>
+
+                {/* Admin role */}
+                <button className="role-btn" onClick={() => setStep("admin-login")} style={{
+                  width: "100%", display: "flex", alignItems: "center", gap: 16, padding: "18px 18px",
+                  borderRadius: 16, border: "2px solid #E3E8F2", background: "#FAFBFD", cursor: "pointer",
+                  textAlign: "left",
+                }}>
+                  <div style={{
+                    width: 50, height: 50, borderRadius: 14, background: "rgba(30,79,217,0.1)",
+                    display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+                  }}>
+                    <Icon name="Lock" size={22} color={COLORS.royal} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 800, color: COLORS.navy, fontSize: "1rem" }}>Admin</div>
+                    <div style={{ fontSize: "0.76rem", color: COLORS.slate, marginTop: 3, lineHeight: 1.4 }}>
+                      Full dashboard • Reports • Host management
+                    </div>
+                    <div style={{ display: "flex", gap: 6, marginTop: 7, flexWrap: "wrap" }}>
+                      {["Analytics", "Export", "Settings"].map((tag) => (
+                        <span key={tag} style={{
+                          fontSize: "0.65rem", fontWeight: 700, padding: "2px 8px", borderRadius: 99,
+                          background: "rgba(30,79,217,0.1)", color: COLORS.royal,
+                        }}>{tag}</span>
+                      ))}
+                    </div>
+                  </div>
+                  <div style={{
+                    width: 34, height: 34, borderRadius: 10, background: "rgba(30,79,217,0.08)",
+                    display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+                  }}>
+                    <Icon name="ArrowUpRight" size={17} color={COLORS.royal} />
+                  </div>
+                </button>
+
+                {/* Footer */}
+                <div style={{
+                  marginTop: 20, padding: "12px 14px", borderRadius: 12,
+                  background: "rgba(11,30,61,0.04)", border: "1px solid #EEF1F7",
+                  display: "flex", alignItems: "center", gap: 8,
+                }}>
+                  <Icon name="ShieldAlert" size={14} color={COLORS.slate} />
+                  <span style={{ fontSize: "0.72rem", color: COLORS.slate, lineHeight: 1.4 }}>
+                    All logins are monitored and access-controlled.
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {step === "admin-login" && (
+              <div className="admin-card" style={{
+                background: "rgba(255,255,255,0.97)", borderRadius: 24, padding: "32px 28px",
+                boxShadow: "0 32px 80px -20px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.12)",
+              }}>
+                <button onClick={() => { setStep("choose"); setErr(""); setPw(""); }} style={{
+                  border: "none", background: "none", color: COLORS.slate, fontSize: "0.8rem", fontWeight: 700,
+                  cursor: "pointer", padding: 0, marginBottom: 20, display: "flex", alignItems: "center", gap: 6,
+                  transition: "color 0.15s",
+                }}>
+                  <Icon name="ArrowLeft" size={15} /> Back to role selection
+                </button>
+
+                {/* Admin avatar */}
+                <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 24 }}>
+                  <div style={{ position: "relative" }}>
+                    <div style={{
+                      width: 54, height: 54, borderRadius: 16, background: `linear-gradient(135deg, ${COLORS.royal}, #2d6af0)`,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      boxShadow: "0 8px 20px -6px rgba(30,79,217,0.5)",
+                    }}>
+                      <Icon name="Lock" size={24} color="#fff" />
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 800, color: COLORS.navy, fontSize: "1.2rem", letterSpacing: "-0.01em" }}>Admin Login</div>
+                    <div style={{ color: COLORS.slate, fontSize: "0.78rem", marginTop: 3 }}>Secure access — credentials required</div>
+                  </div>
+                </div>
+
+                {/* Email field */}
+                <div style={{ marginBottom: 16 }} className="login-input-wrap">
+                  <label style={{ fontSize: "0.78rem", fontWeight: 700, color: COLORS.navy, marginBottom: 6, display: "block" }}>
+                    Admin Email
+                  </label>
+                  <div style={{ position: "relative" }}>
+                    <input
+                      style={{ ...inputStyle, paddingLeft: 42, transition: "all 0.2s" }}
+                      defaultValue="admin@company.com"
+                      readOnly
+                    />
+                    <span style={{ position: "absolute", left: 13, top: 13, color: COLORS.slate }}>
+                      <Icon name="Mail" size={16} />
+                    </span>
+                  </div>
+                </div>
+
+                {/* Password field */}
+                <div style={{ marginBottom: 8 }} className="login-input-wrap">
+                  <label style={{ fontSize: "0.78rem", fontWeight: 700, color: COLORS.navy, marginBottom: 6, display: "block" }}>
+                    Password
+                  </label>
+                  <div style={{ position: "relative" }}>
+                    <input
+                      type={showPw ? "text" : "password"}
+                      style={{ ...inputStyle, paddingLeft: 42, paddingRight: 44, transition: "all 0.2s" }}
+                      placeholder="Enter your password"
+                      value={pw}
+                      onChange={(e) => { setPw(e.target.value); setErr(""); }}
+                      onKeyDown={(e) => e.key === "Enter" && submitAdmin(e)}
+                      autoFocus
+                    />
+                    <span style={{ position: "absolute", left: 13, top: 13, color: COLORS.slate }}>
+                      <Icon name="Lock" size={16} />
+                    </span>
+                    <button type="button" onClick={() => setShowPw(!showPw)} style={{
+                      position: "absolute", right: 12, top: 10, background: "none", border: "none",
+                      cursor: "pointer", color: COLORS.slate, padding: 2, borderRadius: 6,
+                    }}>
+                      <Icon name={showPw ? "EyeOff" : "Eye"} size={16} />
+                    </button>
+                  </div>
+                </div>
+
+                {err && (
+                  <div style={{
+                    display: "flex", alignItems: "center", gap: 7, color: COLORS.danger,
+                    fontSize: "0.78rem", fontWeight: 600, marginBottom: 10,
+                    padding: "8px 12px", borderRadius: 8, background: "rgba(214,69,69,0.07)",
+                  }}>
+                    <Icon name="AlertCircle" size={14} /> {err}
+                  </div>
+                )}
+
+                <button
+                  className="login-submit-btn"
+                  onClick={submitAdmin}
+                  disabled={loading}
+                  style={{
+                    width: "100%", padding: "14px", borderRadius: 12, border: "none",
+                    background: loading
+                      ? "#7A9FE0"
+                      : `linear-gradient(135deg, ${COLORS.royal} 0%, #2d6af0 100%)`,
+                    color: "#fff", fontWeight: 800, fontSize: "0.95rem", cursor: loading ? "not-allowed" : "pointer",
+                    marginTop: 10, letterSpacing: "0.01em",
+                    boxShadow: "0 12px 28px -8px rgba(30,79,217,0.6)",
+                    display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
+                    transition: "all 0.2s",
+                  }}
+                >
+                  {loading ? (
+                    <>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5"
+                        strokeLinecap="round" style={{ animation: "logoSpin 0.8s linear infinite" }}>
+                        <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                      </svg>
+                      Verifying…
+                    </>
+                  ) : (
+                    <><Icon name="Lock" size={17} /> Sign in to Dashboard</>
+                  )}
+                </button>
+
+                <div style={{
+                  marginTop: 18, padding: "10px 14px", borderRadius: 10,
+                  background: "rgba(245,166,35,0.08)", border: "1px solid rgba(245,166,35,0.2)",
+                  display: "flex", alignItems: "center", gap: 8,
+                }}>
+                  <Icon name="AlertCircle" size={14} color={COLORS.amber} />
+                  <span style={{ fontSize: "0.72rem", color: "#9c6710", fontWeight: 600 }}>
+                    Demo mode — enter any password to sign in
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {step === "reception-login" && (
+              <div className="admin-card" style={{
+                background: "rgba(255,255,255,0.97)", borderRadius: 24, padding: "32px 28px",
+                boxShadow: "0 32px 80px -20px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.12)",
+              }}>
+                <button onClick={() => { setStep("choose"); setRecErr(""); setRecId(""); setRecPw(""); }} style={{
+                  border: "none", background: "none", color: COLORS.slate, fontSize: "0.8rem", fontWeight: 700,
+                  cursor: "pointer", padding: 0, marginBottom: 20, display: "flex", alignItems: "center", gap: 6,
+                  transition: "color 0.15s",
+                }}>
+                  <Icon name="ArrowLeft" size={15} /> Back to role selection
+                </button>
+
+                {/* Reception avatar */}
+                <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 24 }}>
+                  <div style={{ position: "relative" }}>
+                    <div style={{
+                      width: 54, height: 54, borderRadius: 16, background: `linear-gradient(135deg, ${COLORS.success}, #29c98a)`,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      boxShadow: "0 8px 20px -6px rgba(31,157,109,0.5)",
+                    }}>
+                      <Icon name="UserCheck" size={24} color="#fff" />
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 800, color: COLORS.navy, fontSize: "1.2rem", letterSpacing: "-0.01em" }}>Receptionist Login</div>
+                    <div style={{ color: COLORS.slate, fontSize: "0.78rem", marginTop: 3 }}>Issued by Admin — enter your ID & password</div>
+                  </div>
+                </div>
+
+                {/* Reception ID field */}
+                <div style={{ marginBottom: 16 }} className="login-input-wrap">
+                  <label style={{ fontSize: "0.78rem", fontWeight: 700, color: COLORS.navy, marginBottom: 6, display: "block" }}>
+                    Reception ID
+                  </label>
+                  <div style={{ position: "relative" }}>
+                    <input
+                      style={{ ...inputStyle, paddingLeft: 42, transition: "all 0.2s" }}
+                      placeholder="Enter your ID"
+                      value={recId}
+                      onChange={(e) => { setRecId(e.target.value); setRecErr(""); }}
+                      onKeyDown={(e) => e.key === "Enter" && submitReception(e)}
+                      autoFocus
+                    />
+                    <span style={{ position: "absolute", left: 13, top: 13, color: COLORS.slate }}>
+                      <Icon name="UserCheck" size={16} />
+                    </span>
+                  </div>
+                </div>
+
+                {/* Reception Password field */}
+                <div style={{ marginBottom: 8 }} className="login-input-wrap">
+                  <label style={{ fontSize: "0.78rem", fontWeight: 700, color: COLORS.navy, marginBottom: 6, display: "block" }}>
+                    Password
+                  </label>
+                  <div style={{ position: "relative" }}>
+                    <input
+                      type={showRecPw ? "text" : "password"}
+                      style={{ ...inputStyle, paddingLeft: 42, paddingRight: 44, transition: "all 0.2s" }}
+                      placeholder="Enter your password"
+                      value={recPw}
+                      onChange={(e) => { setRecPw(e.target.value); setRecErr(""); }}
+                      onKeyDown={(e) => e.key === "Enter" && submitReception(e)}
+                    />
+                    <span style={{ position: "absolute", left: 13, top: 13, color: COLORS.slate }}>
+                      <Icon name="Lock" size={16} />
+                    </span>
+                    <button type="button" onClick={() => setShowRecPw(!showRecPw)} style={{
+                      position: "absolute", right: 12, top: 10, background: "none", border: "none",
+                      cursor: "pointer", color: COLORS.slate, padding: 2, borderRadius: 6,
+                    }}>
+                      <Icon name={showRecPw ? "EyeOff" : "Eye"} size={16} />
+                    </button>
+                  </div>
+                </div>
+
+                {recErr && (
+                  <div style={{
+                    display: "flex", alignItems: "center", gap: 7, color: COLORS.danger,
+                    fontSize: "0.78rem", fontWeight: 600, marginBottom: 10,
+                    padding: "8px 12px", borderRadius: 8, background: "rgba(214,69,69,0.07)",
+                  }}>
+                    <Icon name="AlertCircle" size={14} /> {recErr}
+                  </div>
+                )}
+
+                <button
+                  className="login-submit-btn"
+                  onClick={submitReception}
+                  disabled={recLoading}
+                  style={{
+                    width: "100%", padding: "14px", borderRadius: 12, border: "none",
+                    background: recLoading
+                      ? "#7BC4A4"
+                      : `linear-gradient(135deg, ${COLORS.success} 0%, #29c98a 100%)`,
+                    color: "#fff", fontWeight: 800, fontSize: "0.95rem", cursor: recLoading ? "not-allowed" : "pointer",
+                    marginTop: 10, letterSpacing: "0.01em",
+                    boxShadow: "0 12px 28px -8px rgba(31,157,109,0.5)",
+                    display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
+                    transition: "all 0.2s",
+                  }}
+                >
+                  {recLoading ? (
+                    <>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5"
+                        strokeLinecap="round" style={{ animation: "logoSpin 0.8s linear infinite" }}>
+                        <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                      </svg>
+                      Verifying…
+                    </>
+                  ) : (
+                    <><Icon name="UserCheck" size={17} /> Sign in to Reception Desk</>
+                  )}
+                </button>
+
+                <div style={{
+                  marginTop: 18, padding: "10px 14px", borderRadius: 10,
+                  background: "rgba(11,30,61,0.04)", border: "1px solid #EEF1F7",
+                  display: "flex", alignItems: "center", gap: 8,
+                }}>
+                  <Icon name="ShieldAlert" size={14} color={COLORS.slate} />
+                  <span style={{ fontSize: "0.72rem", color: COLORS.slate, fontWeight: 600, lineHeight: 1.4 }}>
+                    Forgot your password? Contact the Admin to reset it.
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Ticker bar ── */}
+      <TickerBar />
+    </div>
+  );
+}
+
+function Sidebar({ active, setActive, onLogout, pendingCount, isMobile = false, isOpen = false, onClose }) {
   const items = [
     { id: "dashboard", label: "Dashboard", icon: "LayoutDashboard" },
     { id: "visitors", label: "Active Visitors", icon: "Users", badge: pendingCount },
@@ -1203,23 +1938,51 @@ function Sidebar({ active, setActive, onLogout, pendingCount }) {
     { id: "hosts", label: "Hosts / Employees", icon: "Building2" },
     { id: "blacklist", label: "Blacklist", icon: "ShieldAlert" },
     { id: "reports", label: "Reports", icon: "BarChart3" },
+    { id: "reception-access", label: "Reception Access", icon: "Lock" },
   ];
   return (
-    <div style={{
-      width: 248, background: COLORS.navy, height: "100%", display: "flex", flexDirection: "column",
-      flexShrink: 0, overflowY: "auto",
-    }}>
-      <div style={{ padding: "26px 22px 22px", display: "flex", alignItems: "center", gap: 11 }}>
+    <>
+      {/* Mobile backdrop */}
+      {isMobile && (
+        <div onClick={onClose} style={{
+          display: isOpen ? "block" : "none",
+          position: "fixed", inset: 0, background: "rgba(11,30,61,0.6)",
+          zIndex: 49, backdropFilter: "blur(2px)",
+        }} />
+      )}
+
+      <div style={{
+        width: 248, background: COLORS.navy,
+        height: isMobile ? "100vh" : "100%",
+        display: "flex", flexDirection: "column",
+        flexShrink: 0, overflowY: "auto",
+        ...(isMobile ? {
+          position: "fixed", top: 0, left: 0, bottom: 0, zIndex: 50,
+          transform: isOpen ? "translateX(0)" : "translateX(-100%)",
+          transition: "transform 0.28s cubic-bezier(0.4,0,0.2,1)",
+          boxShadow: isOpen ? "6px 0 40px rgba(11,30,61,0.45)" : "none",
+        } : {}),
+      }}>
+      <div style={{ padding: "20px 18px 18px", display: "flex", alignItems: "center", gap: 11 }}>
         <div style={{
           width: 36, height: 36, borderRadius: 10, background: COLORS.royal,
-          display: "flex", alignItems: "center", justifyContent: "center",
+          display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
         }}>
           <Icon name="Building2" size={19} color="#fff" />
         </div>
-        <div>
+        <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ color: "#fff", fontWeight: 800, fontSize: "1.02rem", letterSpacing: "-0.01em" }}>VisitorOS</div>
           <div style={{ color: "rgba(255,255,255,0.45)", fontSize: "0.68rem" }}>Front Desk Console</div>
         </div>
+        {isMobile && (
+          <button onClick={onClose} style={{
+            border: "none", background: "rgba(255,255,255,0.1)", borderRadius: 8,
+            width: 30, height: 30, display: "flex", alignItems: "center", justifyContent: "center",
+            cursor: "pointer", color: "rgba(255,255,255,0.75)", flexShrink: 0,
+          }}>
+            <Icon name="X" size={15} />
+          </button>
+        )}
       </div>
 
       <div style={{ padding: "8px 14px", flex: 1 }}>
@@ -1256,14 +2019,15 @@ function Sidebar({ active, setActive, onLogout, pendingCount }) {
           <Icon name="LogOut" size={16} /> Sign out
         </button>
       </div>
-    </div>
+      </div>
+    </>
   );
 }
 
 function VisitRow({ visit, host, onOpen, onCheckout }) {
   const t = VISIT_TYPES.find((x) => x.id === visit.type);
   return (
-    <div onClick={() => onOpen(visit)} style={{
+    <div onClick={() => onOpen(visit)} className="visit-row-grid" style={{
       display: "grid", gridTemplateColumns: "auto 1.6fr 1fr 1fr 0.9fr auto", alignItems: "center",
       gap: 14, padding: "13px 16px", borderRadius: 12, cursor: "pointer", background: "#fff",
       border: "1px solid #EEF1F7", marginBottom: 8, transition: "box-shadow 0.15s",
@@ -1276,10 +2040,10 @@ function VisitRow({ visit, host, onOpen, onCheckout }) {
         <div style={{ fontWeight: 700, fontSize: "0.88rem", color: COLORS.navy }}>{visit.name}</div>
         <div style={{ fontSize: "0.76rem", color: COLORS.slate, marginTop: 1 }}>{visit.purpose}</div>
       </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.82rem", color: COLORS.navy, fontWeight: 600 }}>
+      <div className="visit-col-type" style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.82rem", color: COLORS.navy, fontWeight: 600 }}>
         <TypeIcon type={visit.type} /> {t.label}
       </div>
-      <div style={{ fontSize: "0.82rem", color: COLORS.slate }}>{host ? host.name : "—"}</div>
+      <div className="visit-col-host" style={{ fontSize: "0.82rem", color: COLORS.slate }}>{host ? host.name : "—"}</div>
       <div style={{ fontSize: "0.8rem", color: COLORS.slate, fontWeight: 600 }}>{fmtTime(visit.checkIn)}</div>
       {visit.status === "checked-in" ? (
         <button onClick={(e) => { e.stopPropagation(); onCheckout(visit.id); }} style={{
@@ -1328,6 +2092,7 @@ function ReceptionistRow({ visit, host, onCheckout }) {
 function ReceptionistView({ visits, blacklist, activeVisitors, onCheckIn, onCheckout, onLogout, hosts }) {
   const [showCheckIn, setShowCheckIn] = useState(false);
   const [search, setSearch] = useState("");
+  const [showChangePw, setShowChangePw] = useState(false);
   const today = new Date();
 
   const visible = useMemo(() => {
@@ -1366,16 +2131,27 @@ function ReceptionistView({ visits, blacklist, activeVisitors, onCheckIn, onChec
             <div style={{ color: "rgba(255,255,255,0.5)", fontSize: "0.74rem" }}>Reception Desk</div>
           </div>
         </div>
-        <button onClick={onLogout} style={{
-          display: "flex", alignItems: "center", gap: 6, padding: "9px 14px", borderRadius: 10,
-          border: "1px solid rgba(255,255,255,0.2)", background: "transparent", color: "rgba(255,255,255,0.7)",
-          fontWeight: 600, fontSize: "0.8rem", cursor: "pointer",
-        }}>
-          <Icon name="LogOut" size={15} /> Sign out
-        </button>
+        <div className="rec-header-buttons" style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <button onClick={() => setShowChangePw(true)} className="rec-header-btn" style={{
+            display: "flex", alignItems: "center", gap: 6, padding: "9px 14px", borderRadius: 10,
+            border: "1px solid rgba(255,255,255,0.2)", background: "transparent", color: "rgba(255,255,255,0.7)",
+            fontWeight: 600, fontSize: "0.8rem", cursor: "pointer",
+          }}>
+            <Icon name="Lock" size={15} /> Change Password
+          </button>
+          <button onClick={onLogout} className="rec-header-btn" style={{
+            display: "flex", alignItems: "center", gap: 6, padding: "9px 14px", borderRadius: 10,
+            border: "1px solid rgba(255,255,255,0.2)", background: "transparent", color: "rgba(255,255,255,0.7)",
+            fontWeight: 600, fontSize: "0.8rem", cursor: "pointer",
+          }}>
+            <Icon name="LogOut" size={15} /> Sign out
+          </button>
+        </div>
       </div>
 
-      <div style={{ padding: "24px 20px", maxWidth: 720, margin: "0 auto" }}>
+      {showChangePw && <ChangePasswordModal onClose={() => setShowChangePw(false)} />}
+
+      <div style={{ padding: "20px 16px", maxWidth: 720, margin: "0 auto", width: "100%" }}>
         <button onClick={() => setShowCheckIn(true)} style={{
           width: "100%", padding: "24px", borderRadius: 18, border: "none", background: COLORS.royal,
           color: "#fff", fontWeight: 800, fontSize: "1.25rem", cursor: "pointer", marginBottom: 24,
@@ -1453,6 +2229,206 @@ function DashStatCard({ label, value, iconName, bgColor, iconColor }) {
   );
 }
 
+function ReceptionAccessPanel() {
+  const [creds, setCreds] = useState(() => loadReceptionCreds());
+  const [idInput, setIdInput] = useState(creds.id);
+  const [pwInput, setPwInput] = useState(creds.password);
+  const [showPw, setShowPw] = useState(false);
+  const [err, setErr] = useState("");
+  const [saved, setSaved] = useState(false);
+
+  function handleSave() {
+    if (idInput.trim().length === 0) { setErr("Reception ID cannot be empty"); return; }
+    if (pwInput.trim().length === 0) { setErr("Password cannot be empty"); return; }
+    const next = { id: idInput.trim(), password: pwInput };
+    saveReceptionCreds(next);
+    setCreds(next);
+    setErr("");
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2500);
+  }
+
+  return (
+    <div style={{ maxWidth: 520 }}>
+      <div style={{ background: "#fff", borderRadius: 16, padding: "24px 26px", border: "1px solid #EEF1F7" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 6 }}>
+          <div style={{
+            width: 40, height: 40, borderRadius: 11, background: "rgba(30,79,217,0.1)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}>
+            <Icon name="Lock" size={19} color={COLORS.royal} />
+          </div>
+          <div>
+            <div style={{ fontWeight: 800, color: COLORS.navy, fontSize: "1.05rem" }}>Reception Access</div>
+            <div style={{ fontSize: "0.78rem", color: COLORS.slate, marginTop: 2 }}>
+              Set the ID & password used by the Receptionist to sign in
+            </div>
+          </div>
+        </div>
+
+        <div style={{ marginTop: 22 }} className="login-input-wrap">
+          <label style={{ fontSize: "0.78rem", fontWeight: 700, color: COLORS.navy, marginBottom: 6, display: "block" }}>
+            Reception ID (e.g. receptionist's name)
+          </label>
+          <input
+            style={{ ...inputStyle }}
+            placeholder="e.g. Priya"
+            value={idInput}
+            onChange={(e) => { setIdInput(e.target.value); setErr(""); }}
+          />
+        </div>
+
+        <div style={{ marginTop: 16, marginBottom: 6 }} className="login-input-wrap">
+          <label style={{ fontSize: "0.78rem", fontWeight: 700, color: COLORS.navy, marginBottom: 6, display: "block" }}>
+            Password
+          </label>
+          <div style={{ position: "relative" }}>
+            <input
+              type={showPw ? "text" : "password"}
+              style={{ ...inputStyle, paddingRight: 44 }}
+              placeholder="Set any password"
+              value={pwInput}
+              onChange={(e) => { setPwInput(e.target.value); setErr(""); }}
+            />
+            <button type="button" onClick={() => setShowPw(!showPw)} style={{
+              position: "absolute", right: 12, top: 10, background: "none", border: "none",
+              cursor: "pointer", color: COLORS.slate, padding: 2, borderRadius: 6,
+            }}>
+              <Icon name={showPw ? "EyeOff" : "Eye"} size={16} />
+            </button>
+          </div>
+        </div>
+
+        {err && (
+          <div style={{
+            display: "flex", alignItems: "center", gap: 7, color: COLORS.danger,
+            fontSize: "0.78rem", fontWeight: 600, marginTop: 10,
+            padding: "8px 12px", borderRadius: 8, background: "rgba(214,69,69,0.07)",
+          }}>
+            <Icon name="AlertCircle" size={14} /> {err}
+          </div>
+        )}
+
+        {saved && (
+          <div style={{
+            display: "flex", alignItems: "center", gap: 7, color: COLORS.success,
+            fontSize: "0.78rem", fontWeight: 600, marginTop: 10,
+            padding: "8px 12px", borderRadius: 8, background: "rgba(31,157,109,0.08)",
+          }}>
+            <Icon name="CheckCircle2" size={14} /> Reception credentials updated.
+          </div>
+        )}
+
+        <button onClick={handleSave} style={{
+          width: "100%", marginTop: 18, padding: "13px", borderRadius: 10, border: "none",
+          background: COLORS.royal, color: "#fff", fontWeight: 800, fontSize: "0.88rem", cursor: "pointer",
+        }}>
+          Save Credentials
+        </button>
+
+        <div style={{
+          marginTop: 18, padding: "12px 14px", borderRadius: 10,
+          background: "rgba(11,30,61,0.04)", border: "1px solid #EEF1F7",
+          display: "flex", alignItems: "flex-start", gap: 8,
+        }}>
+          <Icon name="ShieldAlert" size={14} color={COLORS.slate} style={{ marginTop: 2 }} />
+          <span style={{ fontSize: "0.74rem", color: COLORS.slate, lineHeight: 1.5 }}>
+            The Receptionist can change their own password later from their dashboard,
+            but only the Admin can set the Reception ID or reset access from here.
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ChangePasswordModal({ onClose }) {
+  const [current, setCurrent] = useState("");
+  const [next, setNext] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [err, setErr] = useState("");
+  const [done, setDone] = useState(false);
+
+  function handleSubmit() {
+    const creds = loadReceptionCreds();
+    if (current !== creds.password) { setErr("Current password is incorrect"); return; }
+    if (next.trim().length === 0) { setErr("Please enter a new password"); return; }
+    if (next !== confirm) { setErr("New password and confirmation do not match"); return; }
+    saveReceptionCreds({ id: creds.id, password: next });
+    setErr("");
+    setDone(true);
+    setTimeout(() => onClose(), 1200);
+  }
+
+  return (
+    <div style={{
+      position: "fixed", inset: 0, background: "rgba(11,30,61,0.55)", zIndex: 50,
+      display: "flex", alignItems: "center", justifyContent: "center", padding: 20,
+    }}>
+      <div style={{ background: "#fff", borderRadius: 18, padding: "26px 24px", width: "100%", maxWidth: 380 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
+          <div style={{ fontWeight: 800, color: COLORS.navy, fontSize: "1.05rem" }}>Change Password</div>
+          <button onClick={onClose} style={{ border: "none", background: "none", cursor: "pointer", color: COLORS.slate }}>
+            <Icon name="X" size={18} />
+          </button>
+        </div>
+
+        {done ? (
+          <div style={{
+            display: "flex", alignItems: "center", gap: 7, color: COLORS.success,
+            fontSize: "0.85rem", fontWeight: 600, padding: "10px 12px", borderRadius: 8,
+            background: "rgba(31,157,109,0.08)",
+          }}>
+            <Icon name="CheckCircle2" size={15} /> Password updated successfully.
+          </div>
+        ) : (
+          <>
+            <div style={{ marginBottom: 12 }} className="login-input-wrap">
+              <label style={{ fontSize: "0.76rem", fontWeight: 700, color: COLORS.navy, marginBottom: 6, display: "block" }}>
+                Current Password
+              </label>
+              <input type="password" style={inputStyle} value={current}
+                onChange={(e) => { setCurrent(e.target.value); setErr(""); }} autoFocus />
+            </div>
+            <div style={{ marginBottom: 12 }} className="login-input-wrap">
+              <label style={{ fontSize: "0.76rem", fontWeight: 700, color: COLORS.navy, marginBottom: 6, display: "block" }}>
+                New Password
+              </label>
+              <input type="password" style={inputStyle} value={next}
+                onChange={(e) => { setNext(e.target.value); setErr(""); }} />
+            </div>
+            <div style={{ marginBottom: 6 }} className="login-input-wrap">
+              <label style={{ fontSize: "0.76rem", fontWeight: 700, color: COLORS.navy, marginBottom: 6, display: "block" }}>
+                Confirm New Password
+              </label>
+              <input type="password" style={inputStyle} value={confirm}
+                onChange={(e) => { setConfirm(e.target.value); setErr(""); }}
+                onKeyDown={(e) => e.key === "Enter" && handleSubmit()} />
+            </div>
+
+            {err && (
+              <div style={{
+                display: "flex", alignItems: "center", gap: 7, color: COLORS.danger,
+                fontSize: "0.76rem", fontWeight: 600, marginTop: 8,
+                padding: "8px 12px", borderRadius: 8, background: "rgba(214,69,69,0.07)",
+              }}>
+                <Icon name="AlertCircle" size={13} /> {err}
+              </div>
+            )}
+
+            <button onClick={handleSubmit} style={{
+              width: "100%", marginTop: 16, padding: "12px", borderRadius: 10, border: "none",
+              background: COLORS.navy, color: "#fff", fontWeight: 800, fontSize: "0.86rem", cursor: "pointer",
+            }}>
+              Update Password
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function VisitorManagementSystem() {
   const [role, setRole] = useState(null); // null | "receptionist" | "admin"
   const [active, setActive] = useState("dashboard");
@@ -1467,11 +2443,19 @@ function VisitorManagementSystem() {
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
   const [tick, setTick] = useState(Date.now());
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const windowWidth = useWindowWidth();
+  const isMobile = windowWidth < 768;
+  const isTablet = windowWidth >= 768 && windowWidth < 1100;
 
   useEffect(() => {
     const i = setInterval(() => setTick(Date.now()), 30000);
     return () => clearInterval(i);
   }, []);
+
+  useEffect(() => {
+    if (!isMobile) setSidebarOpen(false);
+  }, [isMobile]);
 
   const today = new Date();
   const isToday = (d) => d.toDateString() === today.toDateString();
@@ -1564,55 +2548,93 @@ function VisitorManagementSystem() {
   const pageTitle = {
     dashboard: "Dashboard", visitors: "Active Visitors", history: "Visit History",
     hosts: "Hosts & Employees", blacklist: "Blacklist Management", reports: "Reports & Analytics",
+    "reception-access": "Reception Access",
   };
 
   return (
-    <div style={{ display: "flex", background: COLORS.ice, height: "100vh", maxHeight: "100dvh", overflow: "hidden" }}>
-      <Sidebar active={active} setActive={setActive} onLogout={() => setRole(null)} pendingCount={activeVisitors.length} />
+    <div style={{
+      display: "flex", background: COLORS.ice,
+      ...(isMobile
+        ? { minHeight: "100dvh" }
+        : { height: "100vh", maxHeight: "100dvh", overflow: "hidden" }),
+    }}>
+      <Sidebar
+        active={active}
+        setActive={(id) => { setActive(id); setSidebarOpen(false); }}
+        onLogout={() => setRole(null)}
+        pendingCount={activeVisitors.length}
+        isMobile={isMobile}
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+      />
 
-      <div style={{ flex: 1, minWidth: 0, height: "100%", overflowY: "auto" }}>
+      <div style={{ flex: 1, minWidth: 0, height: isMobile ? "auto" : "100%", overflowY: isMobile ? "visible" : "auto" }}>
+        {/* ── Top bar ── */}
         <div style={{
-          padding: "20px 32px", display: "flex", justifyContent: "space-between", alignItems: "center",
+          padding: isMobile ? "12px 14px" : "20px 32px",
+          display: "flex", justifyContent: "space-between", alignItems: "center",
           borderBottom: "1px solid #E7EBF3", background: "#fff", position: "sticky", top: 0, zIndex: 10,
+          gap: 10,
         }}>
-          <div>
-            <div style={{ fontFamily: "'Lexend', sans-serif", fontSize: "1.3rem", fontWeight: 700, color: COLORS.navy }}>
-              {pageTitle[active]}
-            </div>
-            <div style={{ fontSize: "0.8rem", color: COLORS.slate, marginTop: 2 }}>
-              {fmtDate(today)} · {activeVisitors.length} visitor{activeVisitors.length !== 1 ? "s" : ""} currently on premises
+          <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 10 : 0, minWidth: 0 }}>
+            {/* Hamburger — mobile only */}
+            {isMobile && (
+              <button onClick={() => setSidebarOpen(true)} style={{
+                border: "none", background: "#F4F7FC", borderRadius: 9, width: 36, height: 36, flexShrink: 0,
+                display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: COLORS.navy,
+              }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                  <line x1="3" y1="6" x2="21" y2="6"/>
+                  <line x1="3" y1="12" x2="21" y2="12"/>
+                  <line x1="3" y1="18" x2="21" y2="18"/>
+                </svg>
+              </button>
+            )}
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontFamily: "'Lexend', sans-serif", fontSize: isMobile ? "1.05rem" : "1.3rem", fontWeight: 700, color: COLORS.navy, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                {pageTitle[active]}
+              </div>
+              {!isMobile && (
+                <div style={{ fontSize: "0.8rem", color: COLORS.slate, marginTop: 2 }}>
+                  {fmtDate(today)} · {activeVisitors.length} visitor{activeVisitors.length !== 1 ? "s" : ""} currently on premises
+                </div>
+              )}
             </div>
           </div>
           {active === "hosts" ? (
             <button onClick={() => setShowAddHost(true)} style={{
-              display: "flex", alignItems: "center", gap: 8, padding: "11px 20px", borderRadius: 11,
-              border: "none", background: COLORS.royal, color: "#fff", fontWeight: 700, fontSize: "0.86rem",
-              cursor: "pointer", boxShadow: "0 10px 24px -10px rgba(30,79,217,0.6)",
+              display: "flex", alignItems: "center", gap: isMobile ? 6 : 8,
+              padding: isMobile ? "9px 14px" : "11px 20px", borderRadius: 11,
+              border: "none", background: COLORS.royal, color: "#fff", fontWeight: 700,
+              fontSize: isMobile ? "0.8rem" : "0.86rem", cursor: "pointer", flexShrink: 0,
+              boxShadow: "0 10px 24px -10px rgba(30,79,217,0.6)", whiteSpace: "nowrap",
             }}>
-              <Icon name="UserPlus" size={17} /> Add Host
+              <Icon name="UserPlus" size={isMobile ? 15 : 17} /> {isMobile ? "Add" : "Add Host"}
             </button>
           ) : (active === "dashboard" || active === "visitors") ? (
             <button onClick={() => setShowCheckIn(true)} style={{
-              display: "flex", alignItems: "center", gap: 8, padding: "11px 20px", borderRadius: 11,
-              border: "none", background: COLORS.royal, color: "#fff", fontWeight: 700, fontSize: "0.86rem",
-              cursor: "pointer", boxShadow: "0 10px 24px -10px rgba(30,79,217,0.6)",
+              display: "flex", alignItems: "center", gap: isMobile ? 6 : 8,
+              padding: isMobile ? "9px 14px" : "11px 20px", borderRadius: 11,
+              border: "none", background: COLORS.royal, color: "#fff", fontWeight: 700,
+              fontSize: isMobile ? "0.8rem" : "0.86rem", cursor: "pointer", flexShrink: 0,
+              boxShadow: "0 10px 24px -10px rgba(30,79,217,0.6)", whiteSpace: "nowrap",
             }}>
-              <Icon name="UserPlus" size={17} /> New Check-in
+              <Icon name="UserPlus" size={isMobile ? 15 : 17} /> {isMobile ? "Check-in" : "New Check-in"}
             </button>
           ) : null}
         </div>
 
-        <div style={{ padding: "28px 32px" }}>
+        <div style={{ padding: isMobile ? "14px 12px" : "28px 32px" }}>
           {active === "dashboard" && (
             <>
-              <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginBottom: 24 }}>
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : isTablet ? "1fr 1fr" : "repeat(4, 1fr)", gap: isMobile ? 10 : 16, marginBottom: isMobile ? 14 : 24 }}>
                 <StatCard label="Visitors Today" value={todaysVisits.length} delta={12} iconName="Users" accent={COLORS.royal} />
                 <StatCard label="Currently Inside" value={activeVisitors.length} iconName="UserCheck" accent={COLORS.success} />
                 <StatCard label="Avg. Visit Duration" value={durationLabel(avgDuration || 0)} iconName="Clock" accent={COLORS.amber} />
                 <StatCard label="Blacklisted Contacts" value={blacklist.length} iconName="ShieldAlert" accent={COLORS.danger} />
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr", gap: 18 }}>
+              <div style={{ display: "grid", gridTemplateColumns: isMobile || isTablet ? "1fr" : "1.6fr 1fr", gap: 18 }}>
                 <div style={{ background: "#fff", borderRadius: 16, padding: "22px 24px", border: "1px solid #EEF1F7" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
                     <div style={{ fontWeight: 800, color: COLORS.navy, fontSize: "1rem" }}>Live Activity</div>
@@ -1666,7 +2688,7 @@ function VisitorManagementSystem() {
 
           {(active === "visitors" || active === "history") && (
             <>
-              <div style={{ display: "flex", gap: 10, marginBottom: 18, flexWrap: "wrap" }}>
+              <div className="search-bar-wrap" style={{ display: "flex", gap: 10, marginBottom: 18, flexWrap: "wrap" }}>
                 <div style={{ position: "relative", flex: "1 1 260px" }}>
                   <span style={{ position: "absolute", left: 13, top: 13, color: COLORS.slate }}><Icon name="Search" size={16} /></span>
                   <input placeholder="Search by name, phone or company..." value={search} onChange={(e) => setSearch(e.target.value)}
@@ -1678,11 +2700,11 @@ function VisitorManagementSystem() {
                 </select>
               </div>
 
-              <div style={{
+              <div className="visit-row-grid" style={{
                 display: "grid", gridTemplateColumns: "auto 1.6fr 1fr 1fr 0.9fr auto", gap: 14,
                 padding: "0 16px 10px", fontSize: "0.7rem", fontWeight: 700, color: COLORS.slate, letterSpacing: "0.04em",
               }}>
-                <div></div><div>VISITOR</div><div>TYPE</div><div>HOST</div><div>TIME</div><div></div>
+                <div></div><div>VISITOR</div><div className="visit-col-type">TYPE</div><div className="visit-col-host">HOST</div><div>TIME</div><div></div>
               </div>
 
               {(active === "visitors" ? filteredVisits.filter(v => v.status === "checked-in") : filteredVisits).length === 0 ? (
@@ -1764,7 +2786,7 @@ function VisitorManagementSystem() {
           )}
 
           {active === "reports" && (
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18 }}>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 18 }}>
               <div style={{ background: "#fff", borderRadius: 16, padding: "22px 24px", border: "1px solid #EEF1F7" }}>
                 <div style={{ fontWeight: 800, color: COLORS.navy, marginBottom: 16 }}>Weekly Footfall Trend</div>
                 {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Today"].map((d, i) => {
@@ -1818,6 +2840,8 @@ function VisitorManagementSystem() {
               </div>
             </div>
           )}
+
+          {active === "reception-access" && <ReceptionAccessPanel />}
         </div>
       </div>
 
