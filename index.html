@@ -37,6 +37,8 @@ const ICON_PATHS = {
   Truck: ["M14 18V6a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h2", "M14 9h4l4 4v4a1 1 0 0 1-1 1h-2", "M5 18a2 2 0 1 0 4 0 2 2 0 1 0-4 0", "M17 18a2 2 0 1 0 4 0 2 2 0 1 0-4 0"],
   Users: ["M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2", "M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8", "M22 21v-2a4 4 0 0 0-3-3.87", "M16 3.13a4 4 0 0 1 0 7.75"],
   ArrowUpRight: ["M7 17 17 7", "M7 7h10v10"],
+  ArrowLeft: ["M19 12H5", "m12 19-7-7 7-7"],
+  Trash2: ["M3 6h18", "M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6", "M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2", "M10 11v6", "M14 11v6"],
   ArrowDownRight: ["M7 7l10 10", "M17 7v10H7"],
   Building2: ["M6 22V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v18", "M2 22h20", "M6 12H4a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h2", "M18 12h2a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1h-2", "M10 6h4", "M10 10h4", "M10 14h4", "M10 18h4"],
   X: ["M18 6 6 18", "M6 6l12 12"],
@@ -98,7 +100,7 @@ const VISIT_TYPES = [
 
 const DEPARTMENTS = ["Operations", "Fleet & Drivers", "Bookings & Sales", "Accounts", "Human Resources", "Administration"];
 
-const HOSTS = [
+const INITIAL_HOSTS = [
   { id: "h1", name: "Anil Deshmukh", dept: "Operations", phone: "+91 98220 11223" },
   { id: "h2", name: "Priya Naik", dept: "Human Resources", phone: "+91 98220 33445" },
   { id: "h3", name: "Rahul Kulkarni", dept: "Accounts", phone: "+91 98220 55667" },
@@ -144,11 +146,11 @@ function downloadCSV(filename, headers, rows) {
   URL.revokeObjectURL(url);
 }
 
-function visitRowsToCSV(visits) {
+function visitRowsToCSV(visits, hosts) {
   const headers = ["Name", "Phone", "Company", "Visit Type", "Host", "Department", "Purpose", "Check-in", "Check-out", "Duration", "Status"];
   const rows = visits.map((v) => {
     const t = VISIT_TYPES.find((x) => x.id === v.type);
-    const host = HOSTS.find((h) => h.id === v.hostId);
+    const host = hosts.find((h) => h.id === v.hostId);
     return [
       v.name, v.phone, v.company || "—", t ? t.label : v.type,
       host ? host.name : "—", host ? host.dept : "—", v.purpose,
@@ -161,28 +163,28 @@ function visitRowsToCSV(visits) {
   return { headers, rows };
 }
 
-function exportTodaysVisitorLog(visits) {
+function exportTodaysVisitorLog(visits, hosts) {
   const today = new Date();
   const todays = visits.filter((v) => v.checkIn.toDateString() === today.toDateString());
-  const { headers, rows } = visitRowsToCSV(todays);
+  const { headers, rows } = visitRowsToCSV(todays, hosts);
   downloadCSV(`Todays_Visitor_Log_${today.toISOString().slice(0, 10)}.csv`, headers, rows);
 }
 
-function exportWeekSummary(visits) {
+function exportWeekSummary(visits, hosts) {
   const now = new Date();
   const weekAgo = new Date(now.getTime() - 7 * 86400000);
   const weekVisits = visits.filter((v) => v.checkIn >= weekAgo && v.checkIn <= now);
-  const { headers, rows } = visitRowsToCSV(weekVisits);
+  const { headers, rows } = visitRowsToCSV(weekVisits, hosts);
   downloadCSV(`This_Week_Summary_${now.toISOString().slice(0, 10)}.csv`, headers, rows);
 }
 
-function exportMonthlyDepartmentReport(visits) {
+function exportMonthlyDepartmentReport(visits, hosts) {
   const now = new Date();
   const monthAgo = new Date(now.getTime() - 30 * 86400000);
   const monthVisits = visits.filter((v) => v.checkIn >= monthAgo && v.checkIn <= now);
   const counts = {};
   monthVisits.forEach((v) => {
-    const host = HOSTS.find((h) => h.id === v.hostId);
+    const host = hosts.find((h) => h.id === v.hostId);
     const dept = host ? host.dept : "Unknown";
     counts[dept] = (counts[dept] || 0) + 1;
   });
@@ -357,11 +359,14 @@ const inputStyle = {
   boxSizing: "border-box", fontFamily: "inherit",
 };
 
-function TextField({ label, required, ...props }) {
+function TextField({ label, required, disabled, ...props }) {
   return (
     <div style={{ marginBottom: 16 }}>
       <FieldLabel required={required}>{label}</FieldLabel>
-      <input style={inputStyle} {...props} />
+      <input
+        style={{ ...inputStyle, ...(disabled ? { background: "#EEF1F7", color: COLORS.slate, cursor: "not-allowed" } : {}) }}
+        disabled={disabled} {...props}
+      />
     </div>
   );
 }
@@ -616,9 +621,50 @@ function ResumeUpload({ file, onSelect, onClear }) {
   );
 }
 
-function CheckInModal({ onClose, onSubmit, blacklist }) {
+const ID_TYPES = ["Aadhar Card", "PAN Card", "Driving License", "Voter ID", "Passport", "Other"];
+const DURATION_OPTIONS = ["Less than 30 mins", "30 mins - 1 hour", "1 - 2 hours", "2 - 4 hours", "Half day", "Full day"];
+
+function SectionCard({ title, children }) {
+  return (
+    <div style={{
+      background: "#fff", borderRadius: 14, border: "1px solid #EEF1F7",
+      padding: "20px 22px", marginBottom: 16,
+    }}>
+      {title && <div style={{ fontWeight: 800, color: COLORS.navy, fontSize: "0.98rem", marginBottom: 16 }}>{title}</div>}
+      {children}
+    </div>
+  );
+}
+
+function ToggleSwitch({ checked, onChange, label }) {
+  return (
+    <button
+      onClick={() => onChange(!checked)}
+      style={{
+        display: "flex", alignItems: "center", gap: 10, border: "none", background: "none",
+        cursor: "pointer", padding: 0,
+      }}
+    >
+      <div style={{
+        width: 40, height: 22, borderRadius: 999, background: checked ? COLORS.royal : "#D5DCEA",
+        position: "relative", transition: "background 0.15s", flexShrink: 0,
+      }}>
+        <div style={{
+          width: 18, height: 18, borderRadius: "50%", background: "#fff", position: "absolute",
+          top: 2, left: checked ? 20 : 2, transition: "left 0.15s", boxShadow: "0 1px 3px rgba(0,0,0,0.25)",
+        }} />
+      </div>
+      <span style={{ fontSize: "0.88rem", fontWeight: 600, color: COLORS.navy }}>{label}</span>
+    </button>
+  );
+}
+
+function CheckInPage({ onClose, onSubmit, blacklist, hosts }) {
   const [form, setForm] = useState({
-    name: "", phone: "", company: "", type: "driver", hostId: HOSTS[0].id, purpose: "",
+    name: "", phone: "", email: "", address: "",
+    idType: "", idNumber: "",
+    type: "driver", company: "", purpose: "", hostId: hosts[0]?.id || "",
+    vehicleNumber: "", duration: "", vip: false,
   });
   const [photo, setPhoto] = useState(null);
   const [resume, setResume] = useState(null);
@@ -629,12 +675,12 @@ function CheckInModal({ onClose, onSubmit, blacklist }) {
   );
 
   function submit() {
-    if (!form.name.trim() || !form.phone.trim() || !form.purpose.trim()) {
-      setError("Please fill in name, phone, and purpose.");
+    if (!form.name.trim() || !form.phone.trim() || !form.purpose.trim() || !form.type) {
+      setError("Please fill in full name, mobile number, visitor category, and purpose of visit.");
       return;
     }
     if (form.phone.length !== 10) {
-      setError("Phone number must be exactly 10 digits.");
+      setError("Mobile number must be exactly 10 digits.");
       return;
     }
     if (isBlacklisted) {
@@ -645,85 +691,159 @@ function CheckInModal({ onClose, onSubmit, blacklist }) {
   }
 
   return (
-    <Modal title="New Visitor Check-in" subtitle="Fill in the visitor details to check in" onClose={onClose}>
-      {isBlacklisted && (
-        <div style={{
-          background: "rgba(214,69,69,0.08)", border: "1px solid rgba(214,69,69,0.25)",
-          borderRadius: 10, padding: "10px 14px", marginBottom: 16, display: "flex",
-          gap: 10, alignItems: "flex-start", color: COLORS.danger, fontSize: "0.84rem", fontWeight: 600,
-        }}>
-          <Icon name="ShieldAlert" size={17} style={{ marginTop: 1, flexShrink: 0 }} />
-          This number was found on the blacklist. Admin approval is required before check-in.
-        </div>
-      )}
-
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-        <TextField label="Visitor Name" required placeholder="e.g. Suresh Kale" value={form.name}
-          onChange={(e) => setForm({ ...form, name: e.target.value })} />
-        <TextField label="Phone Number" required placeholder="9000000000" value={form.phone}
-          inputMode="numeric" maxLength={10}
-          onChange={(e) => setForm({ ...form, phone: e.target.value.replace(/\D/g, "").slice(0, 10) })} />
-      </div>
-
-      <TextField label="Company / Organisation" placeholder="e.g. Kale Traders (optional)" value={form.company}
-        onChange={(e) => setForm({ ...form, company: e.target.value })} />
-
-      <div style={{ marginBottom: 16 }}>
-        <FieldLabel required>Visit Type</FieldLabel>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          {VISIT_TYPES.map((t) => {
-            const active = form.type === t.id;
-            return (
-              <button key={t.id} onClick={() => setForm({ ...form, type: t.id })} style={{
-                flex: "1 1 auto", display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-                padding: "10px 12px", borderRadius: 10, cursor: "pointer", fontSize: "0.82rem", fontWeight: 700,
-                border: active ? `1.5px solid ${t.color}` : "1.5px solid #E3E8F2",
-                background: active ? t.color + "14" : "#FAFBFD", color: active ? t.color : COLORS.slate,
-                transition: "all 0.15s",
-              }}>
-                <Icon name={t.icon} size={15} /> {t.label}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-        <SelectField label="Host / Employee" required value={form.hostId}
-          onChange={(e) => setForm({ ...form, hostId: e.target.value })}>
-          {HOSTS.map((h) => <option key={h.id} value={h.id}>{h.name} — {h.dept}</option>)}
-        </SelectField>
-        <TextField label="Purpose of Visit" required placeholder="e.g. Meeting, Delivery" value={form.purpose}
-          onChange={(e) => setForm({ ...form, purpose: e.target.value })} />
-      </div>
-
-      <div style={{ marginBottom: 16 }}>
-        <FieldLabel>Visitor Photo</FieldLabel>
-        <WebcamCapture photo={photo} onCapture={setPhoto} onClear={() => setPhoto(null)} />
-      </div>
-
-      {form.type === "interview" && (
-        <div style={{ marginBottom: 16 }}>
-          <FieldLabel>Resume</FieldLabel>
-          <ResumeUpload file={resume} onSelect={setResume} onClear={() => setResume(null)} />
-        </div>
-      )}
-
-      {error && <div style={{ color: COLORS.danger, fontSize: "0.82rem", fontWeight: 600, marginBottom: 12 }}>{error}</div>}
-
-      <div style={{ display: "flex", gap: 10, marginTop: 6 }}>
+    <div style={{ minHeight: "100vh", background: COLORS.ice }}>
+      <div style={{
+        background: "#fff", borderBottom: "1px solid #E7EBF3", padding: "16px 24px",
+        display: "flex", alignItems: "center", gap: 14, position: "sticky", top: 0, zIndex: 5,
+      }}>
         <button onClick={onClose} style={{
-          flex: 1, padding: "12px", borderRadius: 10, border: "1.5px solid #E3E8F2",
-          background: "#fff", color: COLORS.slate, fontWeight: 700, cursor: "pointer", fontSize: "0.88rem",
-        }}>Cancel</button>
-        <button onClick={submit} disabled={isBlacklisted} style={{
-          flex: 2, padding: "12px", borderRadius: 10, border: "none",
-          background: isBlacklisted ? "#C9D3E5" : COLORS.royal, color: "#fff", fontWeight: 700,
-          cursor: isBlacklisted ? "not-allowed" : "pointer", fontSize: "0.88rem",
-          boxShadow: isBlacklisted ? "none" : "0 8px 20px -6px rgba(30,79,217,0.5)",
-        }}>Check-in Visitor</button>
+          border: "none", background: "none", cursor: "pointer", color: COLORS.slate,
+          display: "flex", alignItems: "center", gap: 6, fontWeight: 600, fontSize: "0.86rem", padding: 0,
+        }}>
+          <Icon name="ArrowLeft" size={16} /> Back
+        </button>
+        <div>
+          <div style={{ fontWeight: 800, color: COLORS.navy, fontSize: "1.1rem" }}>Register New Visitor</div>
+          <div style={{ fontSize: "0.78rem", color: COLORS.slate, marginTop: 1 }}>Fill in visitor details for pre-registration</div>
+        </div>
       </div>
-    </Modal>
+
+      <div style={{ maxWidth: 760, margin: "0 auto", padding: "20px 20px 100px" }}>
+        {isBlacklisted && (
+          <div style={{
+            background: "rgba(214,69,69,0.08)", border: "1px solid rgba(214,69,69,0.25)",
+            borderRadius: 10, padding: "10px 14px", marginBottom: 16, display: "flex",
+            gap: 10, alignItems: "flex-start", color: COLORS.danger, fontSize: "0.84rem", fontWeight: 600,
+          }}>
+            <Icon name="ShieldAlert" size={17} style={{ marginTop: 1, flexShrink: 0 }} />
+            This number was found on the blacklist. Admin approval is required before check-in.
+          </div>
+        )}
+
+        <SectionCard title="Visitor Photo">
+          <WebcamCapture photo={photo} onCapture={setPhoto} onClear={() => setPhoto(null)} />
+          <div style={{ fontSize: "0.76rem", color: COLORS.slate, marginTop: 10 }}>
+            Photo will be saved with this visitor's record.
+          </div>
+        </SectionCard>
+
+        <SectionCard title="Personal Information">
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+            <TextField label="Full Name" required placeholder="Enter full name" value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })} />
+            <TextField label="Mobile Number" required placeholder="10-digit mobile number" value={form.phone}
+              inputMode="numeric" maxLength={10}
+              onChange={(e) => setForm({ ...form, phone: e.target.value.replace(/\D/g, "").slice(0, 10) })} />
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+            <TextField label="Email" placeholder="email@example.com" value={form.email}
+              onChange={(e) => setForm({ ...form, email: e.target.value })} />
+            <TextField label="Address" placeholder="City / Area" value={form.address}
+              onChange={(e) => setForm({ ...form, address: e.target.value })} />
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+            <SelectField label="ID Type" value={form.idType}
+              onChange={(e) => setForm({ ...form, idType: e.target.value })}>
+              <option value="">Select ID type</option>
+              {ID_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+            </SelectField>
+            <TextField label="ID Number" placeholder="ID card number" value={form.idNumber}
+              onChange={(e) => setForm({ ...form, idNumber: e.target.value })} />
+          </div>
+        </SectionCard>
+
+        <SectionCard title="Visit Details">
+          <div style={{ marginBottom: 16 }}>
+            <FieldLabel required>Visitor Category</FieldLabel>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {VISIT_TYPES.map((t) => {
+                const active = form.type === t.id;
+                return (
+                  <button key={t.id} onClick={() => setForm({ ...form, type: t.id })} style={{
+                    flex: "1 1 auto", display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                    padding: "10px 12px", borderRadius: 10, cursor: "pointer", fontSize: "0.82rem", fontWeight: 700,
+                    border: active ? `1.5px solid ${t.color}` : "1.5px solid #E3E8F2",
+                    background: active ? t.color + "14" : "#FAFBFD", color: active ? t.color : COLORS.slate,
+                    transition: "all 0.15s",
+                  }}>
+                    <Icon name={t.icon} size={15} /> {t.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <TextField label="Company / Organisation" placeholder="Company name" value={form.company}
+            onChange={(e) => setForm({ ...form, company: e.target.value })} />
+
+          <div style={{ marginBottom: 16 }}>
+            <FieldLabel required>Purpose of Visit</FieldLabel>
+            <textarea
+              placeholder="Describe the purpose..." value={form.purpose} rows={3}
+              onChange={(e) => setForm({ ...form, purpose: e.target.value })}
+              style={{ ...inputStyle, resize: "vertical", fontFamily: "inherit" }}
+            />
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+            <SelectField label="Person to Meet" required value={form.hostId}
+              onChange={(e) => setForm({ ...form, hostId: e.target.value })}>
+              {hosts.map((h) => <option key={h.id} value={h.id}>{h.name} — {h.dept}</option>)}
+            </SelectField>
+            <TextField label="Department" value={hosts.find((h) => h.id === form.hostId)?.dept || ""} disabled />
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+            <TextField label="Vehicle Number" placeholder="MH04-XX-0000" value={form.vehicleNumber}
+              onChange={(e) => setForm({ ...form, vehicleNumber: e.target.value.toUpperCase() })} />
+            <SelectField label="Expected Duration" value={form.duration}
+              onChange={(e) => setForm({ ...form, duration: e.target.value })}>
+              <option value="">Select duration</option>
+              {DURATION_OPTIONS.map((d) => <option key={d} value={d}>{d}</option>)}
+            </SelectField>
+          </div>
+
+          <div style={{ marginTop: 4 }}>
+            <ToggleSwitch checked={form.vip} onChange={(v) => setForm({ ...form, vip: v })} label="Mark as VIP Visitor" />
+          </div>
+        </SectionCard>
+
+        {form.type === "interview" && (
+          <SectionCard title="Resume">
+            <ResumeUpload file={resume} onSelect={setResume} onClear={() => setResume(null)} />
+          </SectionCard>
+        )}
+
+        {error && (
+          <div style={{
+            color: COLORS.danger, fontSize: "0.84rem", fontWeight: 600, marginBottom: 14,
+            background: "rgba(214,69,69,0.08)", padding: "10px 14px", borderRadius: 10,
+          }}>{error}</div>
+        )}
+      </div>
+
+      <div style={{
+        position: "fixed", bottom: 0, left: 0, right: 0, background: "#fff",
+        borderTop: "1px solid #E7EBF3", padding: "14px 20px", display: "flex",
+        justifyContent: "flex-end", gap: 10,
+      }}>
+        <div style={{ maxWidth: 760, margin: "0 auto", width: "100%", display: "flex", gap: 10, justifyContent: "flex-end" }}>
+          <button onClick={onClose} style={{
+            padding: "12px 22px", borderRadius: 10, border: "1.5px solid #E3E8F2",
+            background: "#fff", color: COLORS.slate, fontWeight: 700, cursor: "pointer", fontSize: "0.88rem",
+          }}>Cancel</button>
+          <button onClick={submit} disabled={isBlacklisted} style={{
+            padding: "12px 26px", borderRadius: 10, border: "none",
+            background: isBlacklisted ? "#C9D3E5" : COLORS.royal, color: "#fff", fontWeight: 700,
+            cursor: isBlacklisted ? "not-allowed" : "pointer", fontSize: "0.88rem",
+            boxShadow: isBlacklisted ? "none" : "0 8px 20px -6px rgba(30,79,217,0.5)",
+            display: "flex", alignItems: "center", gap: 8,
+          }}>
+            <Icon name="CheckCircle2" size={16} /> Register Visitor
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -783,6 +903,54 @@ function VisitorDetailModal({ visit, host, onClose, onCheckout, onBlacklist }) {
         }}>
           <Icon name="ShieldAlert" size={15} style={{ marginRight: 6, verticalAlign: "-2px" }} /> Blacklist
         </button>
+      </div>
+    </Modal>
+  );
+}
+
+function AddHostModal({ onClose, onSubmit }) {
+  const [name, setName] = useState("");
+  const [dept, setDept] = useState(DEPARTMENTS[0]);
+  const [phone, setPhone] = useState("");
+  const [error, setError] = useState("");
+
+  function submit() {
+    if (!name.trim() || !phone.trim()) {
+      setError("Please fill in name and phone number.");
+      return;
+    }
+    if (phone.length !== 10) {
+      setError("Phone number must be exactly 10 digits.");
+      return;
+    }
+    onSubmit({ name: name.trim(), dept, phone: "+91 " + phone });
+  }
+
+  return (
+    <Modal title="Add New Host" subtitle="Add an employee who visitors can come to meet" onClose={onClose} width={460}>
+      <TextField label="Full Name" required placeholder="e.g. Rohan Kale" value={name}
+        onChange={(e) => setName(e.target.value)} />
+      <SelectField label="Department" required value={dept} onChange={(e) => setDept(e.target.value)}>
+        {DEPARTMENTS.map((d) => <option key={d} value={d}>{d}</option>)}
+      </SelectField>
+      <TextField label="Phone Number" required placeholder="9000000000" value={phone}
+        inputMode="numeric" maxLength={10}
+        onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))} />
+
+      {error && (
+        <div style={{ color: COLORS.danger, fontSize: "0.82rem", fontWeight: 600, marginBottom: 12 }}>{error}</div>
+      )}
+
+      <div style={{ display: "flex", gap: 10, marginTop: 6 }}>
+        <button onClick={onClose} style={{
+          flex: 1, padding: "12px", borderRadius: 10, border: "1.5px solid #E3E8F2",
+          background: "#fff", color: COLORS.slate, fontWeight: 700, cursor: "pointer", fontSize: "0.88rem",
+        }}>Cancel</button>
+        <button onClick={submit} style={{
+          flex: 2, padding: "12px", borderRadius: 10, border: "none",
+          background: COLORS.royal, color: "#fff", fontWeight: 700, cursor: "pointer", fontSize: "0.88rem",
+          boxShadow: "0 8px 20px -6px rgba(30,79,217,0.5)",
+        }}>Add Host</button>
       </div>
     </Modal>
   );
@@ -1055,7 +1223,7 @@ function ReceptionistRow({ visit, host, onCheckout }) {
   );
 }
 
-function ReceptionistView({ visits, blacklist, activeVisitors, onCheckIn, onCheckout, onLogout }) {
+function ReceptionistView({ visits, blacklist, activeVisitors, onCheckIn, onCheckout, onLogout, hosts }) {
   const [showCheckIn, setShowCheckIn] = useState(false);
   const [search, setSearch] = useState("");
   const today = new Date();
@@ -1066,6 +1234,17 @@ function ReceptionistView({ visits, blacklist, activeVisitors, onCheckIn, onChec
       v.name.toLowerCase().includes(search.toLowerCase()) || v.phone.includes(search)
     );
   }, [activeVisitors, search]);
+
+  if (showCheckIn) {
+    return (
+      <CheckInPage
+        onClose={() => setShowCheckIn(false)}
+        onSubmit={(form) => { onCheckIn(form); setShowCheckIn(false); }}
+        blacklist={blacklist}
+        hosts={hosts}
+      />
+    );
+  }
 
   return (
     <div style={{ minHeight: "100vh", background: COLORS.ice }}>
@@ -1132,14 +1311,10 @@ function ReceptionistView({ visits, blacklist, activeVisitors, onCheckIn, onChec
           </div>
         ) : (
           visible.map((v) => (
-            <ReceptionistRow key={v.id} visit={v} host={HOSTS.find((h) => h.id === v.hostId)} onCheckout={onCheckout} />
+            <ReceptionistRow key={v.id} visit={v} host={hosts.find((h) => h.id === v.hostId)} onCheckout={onCheckout} />
           ))
         )}
       </div>
-
-      {showCheckIn && (
-        <CheckInModal onClose={() => setShowCheckIn(false)} onSubmit={(form) => { onCheckIn(form); setShowCheckIn(false); }} blacklist={blacklist} />
-      )}
     </div>
   );
 }
@@ -1157,10 +1332,12 @@ function VisitorManagementSystem() {
   const [role, setRole] = useState(null); // null | "receptionist" | "admin"
   const [active, setActive] = useState("dashboard");
   const [visits, setVisits] = useState(seedVisits);
+  const [hosts, setHosts] = useState(INITIAL_HOSTS);
   const [blacklist, setBlacklist] = useState([
     { phone: "+91 99887 66554", name: "Deepak Rane", reason: "Unauthorized entry attempt", date: new Date(Date.now() - 12 * 86400000) },
   ]);
   const [showCheckIn, setShowCheckIn] = useState(false);
+  const [showAddHost, setShowAddHost] = useState(false);
   const [selectedVisit, setSelectedVisit] = useState(null);
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
@@ -1189,9 +1366,13 @@ function VisitorManagementSystem() {
     const newVisit = {
       id: "v" + Math.random().toString(36).slice(2, 9),
       name: form.name, phone: form.phone, company: form.company || "—",
+      email: form.email || "", address: form.address || "",
+      idType: form.idType || "", idNumber: form.idNumber || "",
+      vehicleNumber: form.vehicleNumber || "", duration: form.duration || "", vip: !!form.vip,
       type: form.type, hostId: form.hostId, purpose: form.purpose,
       status: "checked-in", checkIn: new Date(), checkOut: null,
-      photo: form.photo || null, badge: "VM-" + Math.floor(1000 + Math.random() * 9000), blacklisted: false,
+      photo: form.photo || null, resume: form.resume || null,
+      badge: "VM-" + Math.floor(1000 + Math.random() * 9000), blacklisted: false,
     };
     setVisits((v) => [newVisit, ...v]);
     setShowCheckIn(false);
@@ -1207,6 +1388,14 @@ function VisitorManagementSystem() {
 
   function removeFromBlacklist(phone) {
     setBlacklist((bl) => bl.filter((b) => b.phone !== phone));
+  }
+
+  function addHost(host) {
+    setHosts((hs) => [...hs, { ...host, id: "h" + Math.random().toString(36).slice(2, 9) }]);
+  }
+
+  function removeHost(id) {
+    setHosts((hs) => hs.filter((h) => h.id !== id));
   }
 
   const filteredVisits = useMemo(() => {
@@ -1231,6 +1420,18 @@ function VisitorManagementSystem() {
         onCheckIn={handleCheckIn}
         onCheckout={handleCheckout}
         onLogout={() => setRole(null)}
+        hosts={hosts}
+      />
+    );
+  }
+
+  if (showCheckIn) {
+    return (
+      <CheckInPage
+        onClose={() => setShowCheckIn(false)}
+        onSubmit={handleCheckIn}
+        blacklist={blacklist}
+        hosts={hosts}
       />
     );
   }
@@ -1257,13 +1458,23 @@ function VisitorManagementSystem() {
               {fmtDate(today)} · {activeVisitors.length} visitor{activeVisitors.length !== 1 ? "s" : ""} currently on premises
             </div>
           </div>
-          <button onClick={() => setShowCheckIn(true)} style={{
-            display: "flex", alignItems: "center", gap: 8, padding: "11px 20px", borderRadius: 11,
-            border: "none", background: COLORS.royal, color: "#fff", fontWeight: 700, fontSize: "0.86rem",
-            cursor: "pointer", boxShadow: "0 10px 24px -10px rgba(30,79,217,0.6)",
-          }}>
-            <Icon name="UserPlus" size={17} /> New Check-in
-          </button>
+          {active === "hosts" ? (
+            <button onClick={() => setShowAddHost(true)} style={{
+              display: "flex", alignItems: "center", gap: 8, padding: "11px 20px", borderRadius: 11,
+              border: "none", background: COLORS.royal, color: "#fff", fontWeight: 700, fontSize: "0.86rem",
+              cursor: "pointer", boxShadow: "0 10px 24px -10px rgba(30,79,217,0.6)",
+            }}>
+              <Icon name="UserPlus" size={17} /> Add Host
+            </button>
+          ) : (
+            <button onClick={() => setShowCheckIn(true)} style={{
+              display: "flex", alignItems: "center", gap: 8, padding: "11px 20px", borderRadius: 11,
+              border: "none", background: COLORS.royal, color: "#fff", fontWeight: 700, fontSize: "0.86rem",
+              cursor: "pointer", boxShadow: "0 10px 24px -10px rgba(30,79,217,0.6)",
+            }}>
+              <Icon name="UserPlus" size={17} /> New Check-in
+            </button>
+          )}
         </div>
 
         <div style={{ padding: "28px 32px" }}>
@@ -1286,7 +1497,7 @@ function VisitorManagementSystem() {
                     <EmptyState text="No visitors are currently on the premises." />
                   ) : (
                     activeVisitors.slice(0, 6).map((v) => (
-                      <VisitRow key={v.id} visit={v} host={HOSTS.find((h) => h.id === v.hostId)}
+                      <VisitRow key={v.id} visit={v} host={hosts.find((h) => h.id === v.hostId)}
                         onOpen={setSelectedVisit} onCheckout={handleCheckout} />
                     ))
                   )}
@@ -1315,7 +1526,7 @@ function VisitorManagementSystem() {
                   <div style={{ marginTop: 22, paddingTop: 18, borderTop: "1px solid #EEF1F7" }}>
                     <div style={{ fontWeight: 800, color: COLORS.navy, fontSize: "0.92rem", marginBottom: 10 }}>Department Footfall</div>
                     {DEPARTMENTS.slice(0, 4).map((d) => {
-                      const count = todaysVisits.filter((v) => { const h = HOSTS.find(h => h.id === v.hostId); return h && h.dept === d; }).length;
+                      const count = todaysVisits.filter((v) => { const h = hosts.find(h => h.id === v.hostId); return h && h.dept === d; }).length;
                       return (
                         <div key={d} style={{ display: "flex", justifyContent: "space-between", fontSize: "0.8rem", padding: "6px 0", color: COLORS.slate }}>
                           <span>{d}</span><span style={{ fontWeight: 700, color: COLORS.navy }}>{count}</span>
@@ -1355,7 +1566,7 @@ function VisitorManagementSystem() {
                 (active === "visitors" ? filteredVisits.filter(v => v.status === "checked-in") : filteredVisits)
                   .sort((a, b) => b.checkIn - a.checkIn)
                   .map((v) => (
-                    <VisitRow key={v.id} visit={v} host={HOSTS.find((h) => h.id === v.hostId)}
+                    <VisitRow key={v.id} visit={v} host={hosts.find((h) => h.id === v.hostId)}
                       onOpen={setSelectedVisit} onCheckout={handleCheckout} />
                   ))
               )}
@@ -1364,16 +1575,22 @@ function VisitorManagementSystem() {
 
           {active === "hosts" && (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 14 }}>
-              {HOSTS.map((h) => {
+              {hosts.map((h) => {
                 const hostVisits = visits.filter((v) => v.hostId === h.id);
                 return (
                   <div key={h.id} style={{ background: "#fff", borderRadius: 14, padding: "18px 20px", border: "1px solid #EEF1F7" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+                    <div style={{ display: "flex", alignItems: "flex-start", gap: 12, marginBottom: 12 }}>
                       <Avatar name={h.name} size={42} />
-                      <div>
+                      <div style={{ flex: 1 }}>
                         <div style={{ fontWeight: 700, color: COLORS.navy, fontSize: "0.92rem" }}>{h.name}</div>
                         <div style={{ fontSize: "0.76rem", color: COLORS.slate }}>{h.dept}</div>
                       </div>
+                      <button onClick={() => removeHost(h.id)} title="Remove host" style={{
+                        border: "none", background: "#F4F7FC", borderRadius: 8, padding: "6px 8px",
+                        cursor: "pointer", color: COLORS.danger, flexShrink: 0,
+                      }}>
+                        <Icon name="Trash2" size={14} />
+                      </button>
                     </div>
                     <div style={{ fontSize: "0.78rem", color: COLORS.slate, display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
                       <Icon name="Phone" size={12} /> {h.phone}
@@ -1442,21 +1659,21 @@ function VisitorManagementSystem() {
                 <div style={{ fontSize: "0.82rem", color: COLORS.slate, marginBottom: 18, lineHeight: 1.6 }}>
                   Download a CSV file (opens directly in Excel) based on the visitor data currently in the system.
                 </div>
-                <button onClick={() => exportTodaysVisitorLog(visits)} style={{
+                <button onClick={() => exportTodaysVisitorLog(visits, hosts)} style={{
                   width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
                   padding: "12px 14px", borderRadius: 10, border: "1.5px solid #E3E8F2", background: "#FAFBFD",
                   color: COLORS.navy, fontWeight: 600, fontSize: "0.84rem", marginBottom: 8, cursor: "pointer",
                 }}>
                   Today's Visitor Log <Icon name="ArrowUpRight" size={15} color={COLORS.slate} />
                 </button>
-                <button onClick={() => exportWeekSummary(visits)} style={{
+                <button onClick={() => exportWeekSummary(visits, hosts)} style={{
                   width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
                   padding: "12px 14px", borderRadius: 10, border: "1.5px solid #E3E8F2", background: "#FAFBFD",
                   color: COLORS.navy, fontWeight: 600, fontSize: "0.84rem", marginBottom: 8, cursor: "pointer",
                 }}>
                   This Week Summary <Icon name="ArrowUpRight" size={15} color={COLORS.slate} />
                 </button>
-                <button onClick={() => exportMonthlyDepartmentReport(visits)} style={{
+                <button onClick={() => exportMonthlyDepartmentReport(visits, hosts)} style={{
                   width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
                   padding: "12px 14px", borderRadius: 10, border: "1.5px solid #E3E8F2", background: "#FAFBFD",
                   color: COLORS.navy, fontWeight: 600, fontSize: "0.84rem", marginBottom: 8, cursor: "pointer",
@@ -1476,16 +1693,19 @@ function VisitorManagementSystem() {
         </div>
       </div>
 
-      {showCheckIn && (
-        <CheckInModal onClose={() => setShowCheckIn(false)} onSubmit={handleCheckIn} blacklist={blacklist} />
-      )}
       {selectedVisit && (
         <VisitorDetailModal
           visit={selectedVisit}
-          host={HOSTS.find((h) => h.id === selectedVisit.hostId)}
+          host={hosts.find((h) => h.id === selectedVisit.hostId)}
           onClose={() => setSelectedVisit(null)}
           onCheckout={handleCheckout}
           onBlacklist={handleBlacklist}
+        />
+      )}
+      {showAddHost && (
+        <AddHostModal
+          onClose={() => setShowAddHost(false)}
+          onSubmit={(host) => { addHost(host); setShowAddHost(false); }}
         />
       )}
     </div>
