@@ -3,9 +3,9 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>VisitorOS — Visitor Management System</title>
+<title>Poona Rent A Cab Pvt. Ltd. — Visitor Management System</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Lexend:wght@600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
@@ -206,6 +206,9 @@
 <script type="text/babel" data-presets="react">
 const { useState, useMemo, useEffect, useRef } = React;
 
+/* ── Company Logo (embedded, transparent PNG) ── */
+const POONA_LOGO = "data:image/png;base64,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";
+
 /* --- Responsive hook --- */
 function useWindowWidth() {
   const [w, setW] = useState(typeof window !== "undefined" ? window.innerWidth : 1200);
@@ -217,20 +220,53 @@ function useWindowWidth() {
   return w;
 }
 
-/* ---------- Reception credentials (stored locally on this device) ---------- */
-const RECEPTION_CREDS_KEY = "vos_reception_credentials";
-function loadReceptionCreds() {
+/* ---------- Admin credentials ---------- */
+const ADMIN_CREDS_KEY = "vos_admin_credentials";
+function loadAdminCreds() {
   try {
-    const raw = localStorage.getItem(RECEPTION_CREDS_KEY);
+    const raw = localStorage.getItem(ADMIN_CREDS_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (parsed && parsed.id && parsed.password) return parsed;
+      if (parsed && parsed.password) return parsed;
     }
   } catch (e) {}
-  return { id: "reception", password: "reception123" };
+  return { email: "admin@company.com", password: "admin123" };
+}
+function saveAdminCreds(creds) {
+  try { localStorage.setItem(ADMIN_CREDS_KEY, JSON.stringify(creds)); } catch (e) {}
+}
+
+/* ---------- Reception accounts (multi-account) ---------- */
+const RECEPTION_ACCOUNTS_KEY = "vos_reception_accounts";
+function loadReceptionAccounts() {
+  try {
+    const raw = localStorage.getItem(RECEPTION_ACCOUNTS_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch (e) {}
+  return [{ id: "rec_default", name: "Reception", password: "reception123", email: "reception@company.com", createdAt: new Date().toISOString() }];
+}
+function saveReceptionAccounts(accounts) {
+  try { localStorage.setItem(RECEPTION_ACCOUNTS_KEY, JSON.stringify(accounts)); } catch (e) {}
+}
+
+/* Legacy single-creds — kept for login check backward compat */
+const RECEPTION_CREDS_KEY = "vos_reception_credentials";
+function loadReceptionCreds() {
+  // Now we check against accounts list
+  const accounts = loadReceptionAccounts();
+  return accounts[0] || { id: "reception", password: "reception123" };
 }
 function saveReceptionCreds(creds) {
   try { localStorage.setItem(RECEPTION_CREDS_KEY, JSON.stringify(creds)); } catch (e) {}
+}
+function checkReceptionLogin(inputId, inputPw) {
+  const accounts = loadReceptionAccounts();
+  return accounts.find(a =>
+    a.name.trim().toLowerCase() === inputId.trim().toLowerCase() && a.password === inputPw
+  ) || null;
 }
 
 /* ---------- Icon helper: self-contained inline SVG (no external icon library needed) ---------- */
@@ -1411,7 +1447,7 @@ function TickerBar() {
     "📋 Today's log is syncing",
     "🔒 Secure entry protocol enabled",
     "📞 Helpdesk: +91 98220 00000",
-    "🏢 Welcome to VisitorOS — Front Desk Console",
+    "🏢 Welcome to Poona Rent A Cab Pvt. Ltd. — Front Desk Console",
     "⏱ All check-ins are time-stamped automatically",
   ];
   const text = items.join("   •   ") + "   •   " + items.join("   •   ");
@@ -1449,6 +1485,8 @@ function LoginScreen({ onLogin }) {
   function submitAdmin(e) {
     if (e && e.preventDefault) e.preventDefault();
     if (pw.trim().length === 0) { setErr("Please enter your password"); return; }
+    const adminCreds = loadAdminCreds();
+    if (pw !== adminCreds.password) { setErr("Incorrect password. Please try again."); return; }
     setErr("");
     setLoading(true);
     setTimeout(() => { setLoading(false); onLogin("admin"); }, 900);
@@ -1460,8 +1498,8 @@ function LoginScreen({ onLogin }) {
       setRecErr("Please enter both ID and password");
       return;
     }
-    const creds = loadReceptionCreds();
-    if (recId.trim().toLowerCase() !== creds.id.trim().toLowerCase() || recPw !== creds.password) {
+    const matched = checkReceptionLogin(recId, recPw);
+    if (!matched) {
       setRecErr("Invalid ID or password");
       return;
     }
@@ -1505,18 +1543,49 @@ function LoginScreen({ onLogin }) {
 
           {/* ══ LEFT PANEL ══ */}
           <div className="login-header login-left-panel" style={{ display: "flex", flexDirection: "column", gap: 28 }}>
-            {/* Brand */}
-            <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 4 }}>
+            {/* Brand — Poona Rent A Cab */}
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 10, marginBottom: 4 }}>
+              {/* Logo */}
               <div style={{
-                width: 52, height: 52, borderRadius: 15, background: COLORS.royal,
+                background: "transparent", borderRadius: 20,
+                padding: "14px 22px",
                 display: "flex", alignItems: "center", justifyContent: "center",
-                boxShadow: "0 8px 24px -6px rgba(30,79,217,0.7)",
+                width: "100%",
               }}>
-                <Icon name="Building2" size={26} color="#fff" />
+                <img
+                  src={POONA_LOGO}
+                  alt="Poona Rent A Cab Logo"
+                  style={{
+                    height: 110, width: "auto", maxWidth: "100%",
+                    objectFit: "contain", imageRendering: "crisp-edges",
+                  }}
+                />
               </div>
-              <div>
-                <div style={{ color: "#fff", fontWeight: 800, fontSize: "1.6rem", letterSpacing: "-0.03em", lineHeight: 1 }}>VisitorOS</div>
-                <div style={{ color: "rgba(255,255,255,0.5)", fontSize: "0.78rem", fontWeight: 500, marginTop: 2 }}>Front Desk & Visitor Management</div>
+              {/* Company name */}
+              <div style={{ marginTop: 6 }}>
+                <div style={{
+                  fontWeight: 800,
+                  fontSize: "clamp(0.84rem, calc(4.01vw - 17.3px), 1.38rem)",
+                  letterSpacing: "-0.01em", lineHeight: 1.15,
+                  whiteSpace: "nowrap",
+                  fontFamily: "'Inter', sans-serif",
+                  color: "#ffffff",
+                  background: "linear-gradient(180deg, #ffffff 0%, #d7e6ff 45%, #8fb6ff 100%)",
+                  WebkitBackgroundClip: "text", backgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                  textShadow: "0 1px 0 rgba(255,255,255,0.3), 0 2px 0 rgba(22,60,173,0.85), 0 3px 1px rgba(11,30,61,0.9), 0 5px 10px rgba(0,0,0,0.45), 0 10px 22px rgba(0,0,0,0.3)",
+                }}>
+                  Poona Rent A Cab Private Limited
+                </div>
+                <div style={{
+                  display: "inline-block", marginTop: 10,
+                  background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)",
+                  borderRadius: 8, padding: "4px 12px",
+                  fontSize: "0.72rem", fontWeight: 600, color: "rgba(255,255,255,0.75)",
+                  letterSpacing: "0.05em",
+                }}>
+                  Visitor Management System
+                </div>
               </div>
             </div>
 
@@ -1782,12 +1851,12 @@ function LoginScreen({ onLogin }) {
 
                 <div style={{
                   marginTop: 18, padding: "10px 14px", borderRadius: 10,
-                  background: "rgba(245,166,35,0.08)", border: "1px solid rgba(245,166,35,0.2)",
+                  background: "rgba(11,30,61,0.04)", border: "1px solid #EEF1F7",
                   display: "flex", alignItems: "center", gap: 8,
                 }}>
-                  <Icon name="AlertCircle" size={14} color={COLORS.amber} />
-                  <span style={{ fontSize: "0.72rem", color: "#9c6710", fontWeight: 600 }}>
-                    Demo mode — enter any password to sign in
+                  <Icon name="ShieldAlert" size={14} color={COLORS.slate} />
+                  <span style={{ fontSize: "0.72rem", color: COLORS.slate, fontWeight: 600 }}>
+                    Default password: <strong>admin123</strong> — change it from Admin Settings after login.
                   </span>
                 </div>
               </div>
@@ -1963,16 +2032,18 @@ function Sidebar({ active, setActive, onLogout, pendingCount, isMobile = false, 
           boxShadow: isOpen ? "6px 0 40px rgba(11,30,61,0.45)" : "none",
         } : {}),
       }}>
-      <div style={{ padding: "20px 18px 18px", display: "flex", alignItems: "center", gap: 11 }}>
+      <div style={{ padding: "14px 14px 12px", display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
         <div style={{
-          width: 36, height: 36, borderRadius: 10, background: COLORS.royal,
-          display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+          background: "transparent", borderRadius: 14,
+          padding: "8px 14px", width: "100%", display: "flex",
+          alignItems: "center", justifyContent: "center",
         }}>
-          <Icon name="Building2" size={19} color="#fff" />
+          <img src={POONA_LOGO} alt="Poona Rent A Cab"
+            style={{ height: 52, width: "auto", maxWidth: "100%", objectFit: "contain" }} />
         </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ color: "#fff", fontWeight: 800, fontSize: "1.02rem", letterSpacing: "-0.01em" }}>VisitorOS</div>
-          <div style={{ color: "rgba(255,255,255,0.45)", fontSize: "0.68rem" }}>Front Desk Console</div>
+        <div style={{ textAlign: "center", width: "100%" }}>
+          <div style={{ color: "#fff", fontWeight: 800, fontSize: "0.82rem", letterSpacing: "0em", lineHeight: 1.2, fontFamily: "'Inter', sans-serif" }}>Poona Rent A Cab Pvt. Ltd.</div>
+          <div style={{ color: "rgba(255,255,255,0.45)", fontSize: "0.62rem", marginTop: 2, letterSpacing: "0.04em" }}>VISITOR MANAGEMENT</div>
         </div>
         {isMobile && (
           <button onClick={onClose} style={{
@@ -2121,14 +2192,15 @@ function ReceptionistView({ visits, blacklist, activeVisitors, onCheckIn, onChec
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <div style={{
-            width: 38, height: 38, borderRadius: 10, background: COLORS.royal,
-            display: "flex", alignItems: "center", justifyContent: "center",
+            background: "transparent", borderRadius: 12,
+            padding: "5px 12px", display: "flex", alignItems: "center", justifyContent: "center",
           }}>
-            <Icon name="Building2" size={19} color="#fff" />
+            <img src={POONA_LOGO} alt="Poona Rent A Cab"
+              style={{ height: 40, width: "auto", objectFit: "contain" }} />
           </div>
           <div>
-            <div style={{ color: "#fff", fontWeight: 800, fontSize: "1.05rem" }}>VisitorOS</div>
-            <div style={{ color: "rgba(255,255,255,0.5)", fontSize: "0.74rem" }}>Reception Desk</div>
+            <div style={{ color: "#fff", fontWeight: 800, fontSize: "0.95rem", fontFamily: "'Inter', sans-serif" }}>Poona Rent A Cab Pvt. Ltd.</div>
+            <div style={{ color: "rgba(255,255,255,0.5)", fontSize: "0.72rem" }}>Reception Desk</div>
           </div>
         </div>
         <div className="rec-header-buttons" style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -2229,70 +2301,65 @@ function DashStatCard({ label, value, iconName, bgColor, iconColor }) {
   );
 }
 
-function ReceptionAccessPanel() {
-  const [creds, setCreds] = useState(() => loadReceptionCreds());
-  const [idInput, setIdInput] = useState(creds.id);
-  const [pwInput, setPwInput] = useState(creds.password);
+/* ── Add Reception Account Modal ── */
+function AddReceptionAccountModal({ onClose, onAdd, existingNames }) {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [err, setErr] = useState("");
-  const [saved, setSaved] = useState(false);
 
-  function handleSave() {
-    if (idInput.trim().length === 0) { setErr("Reception ID cannot be empty"); return; }
-    if (pwInput.trim().length === 0) { setErr("Password cannot be empty"); return; }
-    const next = { id: idInput.trim(), password: pwInput };
-    saveReceptionCreds(next);
-    setCreds(next);
-    setErr("");
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
+  function handleAdd() {
+    if (!name.trim()) { setErr("Please enter a name / ID for this account."); return; }
+    if (existingNames.map(n => n.toLowerCase()).includes(name.trim().toLowerCase())) {
+      setErr("An account with this name already exists."); return;
+    }
+    if (!password.trim()) { setErr("Please set a password."); return; }
+    onAdd({ id: "rec_" + Date.now(), name: name.trim(), email: email.trim(), password, createdAt: new Date().toISOString() });
+    onClose();
   }
 
   return (
-    <div style={{ maxWidth: 520 }}>
-      <div style={{ background: "#fff", borderRadius: 16, padding: "24px 26px", border: "1px solid #EEF1F7" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 6 }}>
-          <div style={{
-            width: 40, height: 40, borderRadius: 11, background: "rgba(30,79,217,0.1)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-          }}>
-            <Icon name="Lock" size={19} color={COLORS.royal} />
-          </div>
-          <div>
-            <div style={{ fontWeight: 800, color: COLORS.navy, fontSize: "1.05rem" }}>Reception Access</div>
-            <div style={{ fontSize: "0.78rem", color: COLORS.slate, marginTop: 2 }}>
-              Set the ID & password used by the Receptionist to sign in
-            </div>
-          </div>
+    <div style={{
+      position: "fixed", inset: 0, background: "rgba(11,30,61,0.55)", zIndex: 200,
+      display: "flex", alignItems: "center", justifyContent: "center", padding: 20,
+    }}>
+      <div style={{ background: "#fff", borderRadius: 18, padding: "26px 24px", width: "100%", maxWidth: 400 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+          <div style={{ fontWeight: 800, color: COLORS.navy, fontSize: "1.05rem" }}>Add Reception Account</div>
+          <button onClick={onClose} style={{ border: "none", background: "none", cursor: "pointer", color: COLORS.slate }}>
+            <Icon name="X" size={18} />
+          </button>
         </div>
 
-        <div style={{ marginTop: 22 }} className="login-input-wrap">
-          <label style={{ fontSize: "0.78rem", fontWeight: 700, color: COLORS.navy, marginBottom: 6, display: "block" }}>
-            Reception ID (e.g. receptionist's name)
+        <div style={{ marginBottom: 14 }} className="login-input-wrap">
+          <label style={{ fontSize: "0.76rem", fontWeight: 700, color: COLORS.navy, marginBottom: 6, display: "block" }}>
+            Name / Reception ID <span style={{ color: COLORS.danger }}>*</span>
           </label>
-          <input
-            style={{ ...inputStyle }}
-            placeholder="e.g. Priya"
-            value={idInput}
-            onChange={(e) => { setIdInput(e.target.value); setErr(""); }}
-          />
+          <input style={inputStyle} placeholder="e.g. Priya Naik" value={name}
+            onChange={(e) => { setName(e.target.value); setErr(""); }} autoFocus />
         </div>
 
-        <div style={{ marginTop: 16, marginBottom: 6 }} className="login-input-wrap">
-          <label style={{ fontSize: "0.78rem", fontWeight: 700, color: COLORS.navy, marginBottom: 6, display: "block" }}>
-            Password
+        <div style={{ marginBottom: 14 }} className="login-input-wrap">
+          <label style={{ fontSize: "0.76rem", fontWeight: 700, color: COLORS.navy, marginBottom: 6, display: "block" }}>
+            Email (optional)
+          </label>
+          <input style={inputStyle} placeholder="e.g. priya@company.com" value={email}
+            onChange={(e) => { setEmail(e.target.value); setErr(""); }} />
+        </div>
+
+        <div style={{ marginBottom: 6 }} className="login-input-wrap">
+          <label style={{ fontSize: "0.76rem", fontWeight: 700, color: COLORS.navy, marginBottom: 6, display: "block" }}>
+            Password <span style={{ color: COLORS.danger }}>*</span>
           </label>
           <div style={{ position: "relative" }}>
-            <input
-              type={showPw ? "text" : "password"}
-              style={{ ...inputStyle, paddingRight: 44 }}
-              placeholder="Set any password"
-              value={pwInput}
-              onChange={(e) => { setPwInput(e.target.value); setErr(""); }}
-            />
+            <input type={showPw ? "text" : "password"} style={{ ...inputStyle, paddingRight: 44 }}
+              placeholder="Set a password" value={password}
+              onChange={(e) => { setPassword(e.target.value); setErr(""); }}
+              onKeyDown={(e) => e.key === "Enter" && handleAdd()} />
             <button type="button" onClick={() => setShowPw(!showPw)} style={{
               position: "absolute", right: 12, top: 10, background: "none", border: "none",
-              cursor: "pointer", color: COLORS.slate, padding: 2, borderRadius: 6,
+              cursor: "pointer", color: COLORS.slate,
             }}>
               <Icon name={showPw ? "EyeOff" : "Eye"} size={16} />
             </button>
@@ -2302,42 +2369,487 @@ function ReceptionAccessPanel() {
         {err && (
           <div style={{
             display: "flex", alignItems: "center", gap: 7, color: COLORS.danger,
-            fontSize: "0.78rem", fontWeight: 600, marginTop: 10,
+            fontSize: "0.76rem", fontWeight: 600, marginTop: 10,
             padding: "8px 12px", borderRadius: 8, background: "rgba(214,69,69,0.07)",
           }}>
-            <Icon name="AlertCircle" size={14} /> {err}
+            <Icon name="AlertCircle" size={13} /> {err}
           </div>
         )}
 
-        {saved && (
-          <div style={{
-            display: "flex", alignItems: "center", gap: 7, color: COLORS.success,
-            fontSize: "0.78rem", fontWeight: 600, marginTop: 10,
-            padding: "8px 12px", borderRadius: 8, background: "rgba(31,157,109,0.08)",
+        <div style={{ display: "flex", gap: 10, marginTop: 18 }}>
+          <button onClick={onClose} style={{
+            flex: 1, padding: "12px", borderRadius: 10, border: "1.5px solid #E3E8F2",
+            background: "#fff", color: COLORS.slate, fontWeight: 700, cursor: "pointer",
+          }}>Cancel</button>
+          <button onClick={handleAdd} style={{
+            flex: 2, padding: "12px", borderRadius: 10, border: "none",
+            background: COLORS.royal, color: "#fff", fontWeight: 800, cursor: "pointer",
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
           }}>
-            <Icon name="CheckCircle2" size={14} /> Reception credentials updated.
-          </div>
-        )}
-
-        <button onClick={handleSave} style={{
-          width: "100%", marginTop: 18, padding: "13px", borderRadius: 10, border: "none",
-          background: COLORS.royal, color: "#fff", fontWeight: 800, fontSize: "0.88rem", cursor: "pointer",
-        }}>
-          Save Credentials
-        </button>
-
-        <div style={{
-          marginTop: 18, padding: "12px 14px", borderRadius: 10,
-          background: "rgba(11,30,61,0.04)", border: "1px solid #EEF1F7",
-          display: "flex", alignItems: "flex-start", gap: 8,
-        }}>
-          <Icon name="ShieldAlert" size={14} color={COLORS.slate} style={{ marginTop: 2 }} />
-          <span style={{ fontSize: "0.74rem", color: COLORS.slate, lineHeight: 1.5 }}>
-            The Receptionist can change their own password later from their dashboard,
-            but only the Admin can set the Reception ID or reset access from here.
-          </span>
+            <Icon name="UserPlus" size={16} /> Add Account
+          </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+/* ── Reset Password Modal (Admin resets a reception account's password) ── */
+function ResetPasswordModal({ account, onClose, onReset }) {
+  const [newPw, setNewPw] = useState("");
+  const [confirmPw, setConfirmPw] = useState("");
+  const [showPw, setShowPw] = useState(false);
+  const [err, setErr] = useState("");
+  const [done, setDone] = useState(false);
+
+  function handleReset() {
+    if (!newPw.trim()) { setErr("Please enter a new password."); return; }
+    if (newPw !== confirmPw) { setErr("Passwords do not match."); return; }
+    onReset(account.id, newPw);
+    setDone(true);
+    setTimeout(() => onClose(), 1200);
+  }
+
+  return (
+    <div style={{
+      position: "fixed", inset: 0, background: "rgba(11,30,61,0.55)", zIndex: 200,
+      display: "flex", alignItems: "center", justifyContent: "center", padding: 20,
+    }}>
+      <div style={{ background: "#fff", borderRadius: 18, padding: "26px 24px", width: "100%", maxWidth: 380 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
+          <div>
+            <div style={{ fontWeight: 800, color: COLORS.navy, fontSize: "1.05rem" }}>Reset Password</div>
+            <div style={{ fontSize: "0.78rem", color: COLORS.slate, marginTop: 3 }}>For: {account.name}</div>
+          </div>
+          <button onClick={onClose} style={{ border: "none", background: "none", cursor: "pointer", color: COLORS.slate }}>
+            <Icon name="X" size={18} />
+          </button>
+        </div>
+
+        {done ? (
+          <div style={{
+            display: "flex", alignItems: "center", gap: 7, color: COLORS.success,
+            fontSize: "0.85rem", fontWeight: 600, padding: "10px 12px", borderRadius: 8,
+            background: "rgba(31,157,109,0.08)",
+          }}>
+            <Icon name="CheckCircle2" size={15} /> Password reset successfully.
+          </div>
+        ) : (
+          <>
+            <div style={{ marginBottom: 14 }} className="login-input-wrap">
+              <label style={{ fontSize: "0.76rem", fontWeight: 700, color: COLORS.navy, marginBottom: 6, display: "block" }}>
+                New Password
+              </label>
+              <div style={{ position: "relative" }}>
+                <input type={showPw ? "text" : "password"} style={{ ...inputStyle, paddingRight: 44 }}
+                  value={newPw} onChange={(e) => { setNewPw(e.target.value); setErr(""); }} autoFocus />
+                <button type="button" onClick={() => setShowPw(!showPw)} style={{
+                  position: "absolute", right: 12, top: 10, background: "none", border: "none",
+                  cursor: "pointer", color: COLORS.slate,
+                }}>
+                  <Icon name={showPw ? "EyeOff" : "Eye"} size={16} />
+                </button>
+              </div>
+            </div>
+            <div style={{ marginBottom: 6 }} className="login-input-wrap">
+              <label style={{ fontSize: "0.76rem", fontWeight: 700, color: COLORS.navy, marginBottom: 6, display: "block" }}>
+                Confirm New Password
+              </label>
+              <input type="password" style={inputStyle} value={confirmPw}
+                onChange={(e) => { setConfirmPw(e.target.value); setErr(""); }}
+                onKeyDown={(e) => e.key === "Enter" && handleReset()} />
+            </div>
+
+            {err && (
+              <div style={{
+                display: "flex", alignItems: "center", gap: 7, color: COLORS.danger,
+                fontSize: "0.76rem", fontWeight: 600, marginTop: 8,
+                padding: "8px 12px", borderRadius: 8, background: "rgba(214,69,69,0.07)",
+              }}>
+                <Icon name="AlertCircle" size={13} /> {err}
+              </div>
+            )}
+
+            <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
+              <button onClick={onClose} style={{
+                flex: 1, padding: "12px", borderRadius: 10, border: "1.5px solid #E3E8F2",
+                background: "#fff", color: COLORS.slate, fontWeight: 700, cursor: "pointer",
+              }}>Cancel</button>
+              <button onClick={handleReset} style={{
+                flex: 2, padding: "12px", borderRadius: 10, border: "none",
+                background: COLORS.navy, color: "#fff", fontWeight: 800, cursor: "pointer",
+              }}>Reset Password</button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ── Admin Change Own Password Modal ── */
+function AdminChangePasswordModal({ onClose }) {
+  const [current, setCurrent] = useState("");
+  const [next, setNext] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [showCur, setShowCur] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const [err, setErr] = useState("");
+  const [done, setDone] = useState(false);
+
+  function handleSubmit() {
+    const adminCreds = loadAdminCreds();
+    if (current !== adminCreds.password) { setErr("Current password is incorrect."); return; }
+    if (!next.trim()) { setErr("Please enter a new password."); return; }
+    if (next !== confirm) { setErr("New passwords do not match."); return; }
+    saveAdminCreds({ ...adminCreds, password: next });
+    setDone(true);
+    setTimeout(() => onClose(), 1400);
+  }
+
+  return (
+    <div style={{
+      position: "fixed", inset: 0, background: "rgba(11,30,61,0.55)", zIndex: 200,
+      display: "flex", alignItems: "center", justifyContent: "center", padding: 20,
+    }}>
+      <div style={{ background: "#fff", borderRadius: 18, padding: "26px 24px", width: "100%", maxWidth: 380 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+          <div>
+            <div style={{ fontWeight: 800, color: COLORS.navy, fontSize: "1.05rem" }}>Change Admin Password</div>
+            <div style={{ fontSize: "0.78rem", color: COLORS.slate, marginTop: 3 }}>admin@company.com</div>
+          </div>
+          <button onClick={onClose} style={{ border: "none", background: "none", cursor: "pointer", color: COLORS.slate }}>
+            <Icon name="X" size={18} />
+          </button>
+        </div>
+
+        {done ? (
+          <div style={{
+            display: "flex", alignItems: "center", gap: 7, color: COLORS.success,
+            fontSize: "0.85rem", fontWeight: 600, padding: "10px 12px", borderRadius: 8,
+            background: "rgba(31,157,109,0.08)",
+          }}>
+            <Icon name="CheckCircle2" size={15} /> Admin password updated successfully.
+          </div>
+        ) : (
+          <>
+            <div style={{ marginBottom: 14 }} className="login-input-wrap">
+              <label style={{ fontSize: "0.76rem", fontWeight: 700, color: COLORS.navy, marginBottom: 6, display: "block" }}>
+                Current Password
+              </label>
+              <div style={{ position: "relative" }}>
+                <input type={showCur ? "text" : "password"} style={{ ...inputStyle, paddingRight: 44 }}
+                  value={current} onChange={(e) => { setCurrent(e.target.value); setErr(""); }} autoFocus />
+                <button type="button" onClick={() => setShowCur(!showCur)} style={{
+                  position: "absolute", right: 12, top: 10, background: "none", border: "none", cursor: "pointer", color: COLORS.slate,
+                }}>
+                  <Icon name={showCur ? "EyeOff" : "Eye"} size={16} />
+                </button>
+              </div>
+            </div>
+            <div style={{ marginBottom: 14 }} className="login-input-wrap">
+              <label style={{ fontSize: "0.76rem", fontWeight: 700, color: COLORS.navy, marginBottom: 6, display: "block" }}>
+                New Password
+              </label>
+              <div style={{ position: "relative" }}>
+                <input type={showNew ? "text" : "password"} style={{ ...inputStyle, paddingRight: 44 }}
+                  value={next} onChange={(e) => { setNext(e.target.value); setErr(""); }} />
+                <button type="button" onClick={() => setShowNew(!showNew)} style={{
+                  position: "absolute", right: 12, top: 10, background: "none", border: "none", cursor: "pointer", color: COLORS.slate,
+                }}>
+                  <Icon name={showNew ? "EyeOff" : "Eye"} size={16} />
+                </button>
+              </div>
+            </div>
+            <div style={{ marginBottom: 6 }} className="login-input-wrap">
+              <label style={{ fontSize: "0.76rem", fontWeight: 700, color: COLORS.navy, marginBottom: 6, display: "block" }}>
+                Confirm New Password
+              </label>
+              <input type="password" style={inputStyle} value={confirm}
+                onChange={(e) => { setConfirm(e.target.value); setErr(""); }}
+                onKeyDown={(e) => e.key === "Enter" && handleSubmit()} />
+            </div>
+
+            {err && (
+              <div style={{
+                display: "flex", alignItems: "center", gap: 7, color: COLORS.danger,
+                fontSize: "0.76rem", fontWeight: 600, marginTop: 8,
+                padding: "8px 12px", borderRadius: 8, background: "rgba(214,69,69,0.07)",
+              }}>
+                <Icon name="AlertCircle" size={13} /> {err}
+              </div>
+            )}
+
+            <div style={{ display: "flex", gap: 10, marginTop: 18 }}>
+              <button onClick={onClose} style={{
+                flex: 1, padding: "12px", borderRadius: 10, border: "1.5px solid #E3E8F2",
+                background: "#fff", color: COLORS.slate, fontWeight: 700, cursor: "pointer",
+              }}>Cancel</button>
+              <button onClick={handleSubmit} style={{
+                flex: 2, padding: "12px", borderRadius: 10, border: "none",
+                background: `linear-gradient(135deg, ${COLORS.royal}, #2d6af0)`,
+                color: "#fff", fontWeight: 800, cursor: "pointer",
+              }}>Update Password</button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ── Main Reception Access Panel ── */
+function ReceptionAccessPanel() {
+  const [tab, setTab] = useState("accounts"); // "accounts" | "admin"
+  const [accounts, setAccounts] = useState(() => loadReceptionAccounts());
+  const [showAdd, setShowAdd] = useState(false);
+  const [resetTarget, setResetTarget] = useState(null);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [flashMsg, setFlashMsg] = useState("");
+  const [showAdminPw, setShowAdminPw] = useState(false);
+
+  function flash(msg) {
+    setFlashMsg(msg);
+    setTimeout(() => setFlashMsg(""), 2500);
+  }
+
+  function handleAdd(acct) {
+    const updated = [...accounts, acct];
+    setAccounts(updated);
+    saveReceptionAccounts(updated);
+    flash("Account added successfully.");
+  }
+
+  function handleDelete(id) {
+    const updated = accounts.filter(a => a.id !== id);
+    setAccounts(updated);
+    saveReceptionAccounts(updated);
+    setDeleteConfirm(null);
+    flash("Account deleted.");
+  }
+
+  function handleResetPw(id, newPw) {
+    const updated = accounts.map(a => a.id === id ? { ...a, password: newPw } : a);
+    setAccounts(updated);
+    saveReceptionAccounts(updated);
+    flash("Password reset successfully.");
+  }
+
+  const tabStyle = (active) => ({
+    padding: "9px 20px", borderRadius: 10, border: "none", fontWeight: 700, fontSize: "0.84rem",
+    cursor: "pointer", transition: "all 0.15s",
+    background: active ? COLORS.royal : "transparent",
+    color: active ? "#fff" : COLORS.slate,
+  });
+
+  return (
+    <div style={{ maxWidth: 620 }}>
+
+      {/* Tabs */}
+      <div style={{
+        display: "flex", gap: 6, background: "#F4F7FC", padding: 6, borderRadius: 14,
+        marginBottom: 20, width: "fit-content",
+      }}>
+        <button style={tabStyle(tab === "accounts")} onClick={() => setTab("accounts")}>
+          Reception Accounts
+        </button>
+        <button style={tabStyle(tab === "admin")} onClick={() => setTab("admin")}>
+          Admin Password
+        </button>
+      </div>
+
+      {/* Flash message */}
+      {flashMsg && (
+        <div style={{
+          display: "flex", alignItems: "center", gap: 7, color: COLORS.success,
+          fontSize: "0.82rem", fontWeight: 600, marginBottom: 16,
+          padding: "10px 14px", borderRadius: 10, background: "rgba(31,157,109,0.08)",
+          border: "1px solid rgba(31,157,109,0.2)",
+        }}>
+          <Icon name="CheckCircle2" size={15} /> {flashMsg}
+        </div>
+      )}
+
+      {/* ── TAB: Reception Accounts ── */}
+      {tab === "accounts" && (
+        <div>
+          {/* Header */}
+          <div style={{
+            display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16,
+          }}>
+            <div>
+              <div style={{ fontWeight: 800, color: COLORS.navy, fontSize: "1.05rem" }}>Reception Accounts</div>
+              <div style={{ fontSize: "0.78rem", color: COLORS.slate, marginTop: 3 }}>
+                {accounts.length} account{accounts.length !== 1 ? "s" : ""} — these can sign in to the Reception Desk
+              </div>
+            </div>
+            <button onClick={() => setShowAdd(true)} style={{
+              display: "flex", alignItems: "center", gap: 7, padding: "10px 16px", borderRadius: 10,
+              border: "none", background: COLORS.royal, color: "#fff", fontWeight: 700, fontSize: "0.84rem",
+              cursor: "pointer", boxShadow: "0 6px 14px -6px rgba(30,79,217,0.5)",
+            }}>
+              <Icon name="UserPlus" size={15} /> Add Account
+            </button>
+          </div>
+
+          {/* Account list */}
+          {accounts.length === 0 ? (
+            <div style={{
+              background: "#fff", borderRadius: 14, border: "1px solid #EEF1F7",
+              padding: "40px 20px", textAlign: "center",
+            }}>
+              <Icon name="Users" size={32} style={{ opacity: 0.25, marginBottom: 10 }} />
+              <div style={{ fontSize: "0.86rem", fontWeight: 600, color: COLORS.slate }}>
+                No reception accounts. Add one to allow sign-in.
+              </div>
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {accounts.map((acct) => (
+                <div key={acct.id} style={{
+                  background: "#fff", borderRadius: 14, border: "1px solid #EEF1F7",
+                  padding: "16px 20px", display: "flex", alignItems: "center", gap: 14,
+                }}>
+                  <Avatar name={acct.name} size={44} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 800, color: COLORS.navy, fontSize: "0.95rem" }}>{acct.name}</div>
+                    {acct.email && (
+                      <div style={{ fontSize: "0.76rem", color: COLORS.slate, marginTop: 2, display: "flex", alignItems: "center", gap: 5 }}>
+                        <Icon name="Mail" size={11} /> {acct.email}
+                      </div>
+                    )}
+                    <div style={{ fontSize: "0.72rem", color: COLORS.slate, marginTop: 3, display: "flex", alignItems: "center", gap: 5 }}>
+                      <Icon name="Lock" size={11} />
+                      Login ID: <strong style={{ color: COLORS.navy }}>{acct.name}</strong>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+                    {deleteConfirm === acct.id ? (
+                      <>
+                        <button onClick={() => handleDelete(acct.id)} style={{
+                          padding: "7px 12px", borderRadius: 8, border: "none",
+                          background: COLORS.danger, color: "#fff", fontWeight: 700,
+                          fontSize: "0.76rem", cursor: "pointer",
+                        }}>Confirm Delete</button>
+                        <button onClick={() => setDeleteConfirm(null)} style={{
+                          padding: "7px 12px", borderRadius: 8, border: "1.5px solid #E3E8F2",
+                          background: "#fff", color: COLORS.slate, fontWeight: 700,
+                          fontSize: "0.76rem", cursor: "pointer",
+                        }}>Cancel</button>
+                      </>
+                    ) : (
+                      <>
+                        <button onClick={() => setResetTarget(acct)} title="Reset Password" style={{
+                          display: "flex", alignItems: "center", gap: 5, padding: "7px 12px", borderRadius: 8,
+                          border: "1.5px solid #E3E8F2", background: "#FAFBFD",
+                          color: COLORS.royal, fontWeight: 700, fontSize: "0.76rem", cursor: "pointer",
+                        }}>
+                          <Icon name="RefreshCw" size={13} /> Reset PW
+                        </button>
+                        <button onClick={() => setDeleteConfirm(acct.id)} title="Delete Account" style={{
+                          display: "flex", alignItems: "center", gap: 5, padding: "7px 12px", borderRadius: 8,
+                          border: "1.5px solid rgba(214,69,69,0.25)", background: "rgba(214,69,69,0.06)",
+                          color: COLORS.danger, fontWeight: 700, fontSize: "0.76rem", cursor: "pointer",
+                        }}>
+                          <Icon name="Trash2" size={13} /> Delete
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div style={{
+            marginTop: 18, padding: "12px 14px", borderRadius: 10,
+            background: "rgba(11,30,61,0.04)", border: "1px solid #EEF1F7",
+            display: "flex", alignItems: "flex-start", gap: 8,
+          }}>
+            <Icon name="ShieldAlert" size={14} color={COLORS.slate} style={{ marginTop: 2 }} />
+            <span style={{ fontSize: "0.74rem", color: COLORS.slate, lineHeight: 1.5 }}>
+              The Receptionist logs in using their Name as the ID and the password set here.
+              Only Admin can add, delete, or reset passwords. The Receptionist can change their own password after logging in.
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* ── TAB: Admin Password ── */}
+      {tab === "admin" && (
+        <div style={{ background: "#fff", borderRadius: 16, padding: "24px 26px", border: "1px solid #EEF1F7" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
+            <div style={{
+              width: 40, height: 40, borderRadius: 11,
+              background: `linear-gradient(135deg, ${COLORS.royal}, #2d6af0)`,
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}>
+              <Icon name="Lock" size={18} color="#fff" />
+            </div>
+            <div>
+              <div style={{ fontWeight: 800, color: COLORS.navy, fontSize: "1.05rem" }}>Admin Login Password</div>
+              <div style={{ fontSize: "0.78rem", color: COLORS.slate, marginTop: 2 }}>
+                admin@company.com
+              </div>
+            </div>
+          </div>
+
+          <div style={{
+            padding: "14px 16px", borderRadius: 12,
+            background: "rgba(30,79,217,0.06)", border: "1.5px solid rgba(30,79,217,0.15)",
+            marginBottom: 20,
+            display: "flex", alignItems: "center", gap: 10,
+          }}>
+            <Icon name="AlertCircle" size={15} color={COLORS.royal} />
+            <span style={{ fontSize: "0.8rem", color: COLORS.royal, fontWeight: 600, lineHeight: 1.5 }}>
+              Admin email is fixed as <strong>admin@company.com</strong>. Only the password can be changed.
+            </span>
+          </div>
+
+          <button onClick={() => setShowAdminPw(true)} style={{
+            width: "100%", padding: "14px", borderRadius: 12, border: "none",
+            background: `linear-gradient(135deg, ${COLORS.royal}, #2d6af0)`,
+            color: "#fff", fontWeight: 800, fontSize: "0.9rem", cursor: "pointer",
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
+            boxShadow: "0 10px 24px -8px rgba(30,79,217,0.5)",
+          }}>
+            <Icon name="Lock" size={17} /> Change Admin Password
+          </button>
+
+          <div style={{
+            marginTop: 16, padding: "12px 14px", borderRadius: 10,
+            background: "rgba(11,30,61,0.04)", border: "1px solid #EEF1F7",
+            display: "flex", alignItems: "flex-start", gap: 8,
+          }}>
+            <Icon name="ShieldAlert" size={14} color={COLORS.slate} style={{ marginTop: 2 }} />
+            <span style={{ fontSize: "0.74rem", color: COLORS.slate, lineHeight: 1.5 }}>
+              Default password is <strong>admin123</strong>. Change it immediately for security.
+              Password is stored in your browser's local storage.
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Modals */}
+      {showAdd && (
+        <AddReceptionAccountModal
+          onClose={() => setShowAdd(false)}
+          onAdd={handleAdd}
+          existingNames={accounts.map(a => a.name)}
+        />
+      )}
+      {resetTarget && (
+        <ResetPasswordModal
+          account={resetTarget}
+          onClose={() => setResetTarget(null)}
+          onReset={handleResetPw}
+        />
+      )}
+      {showAdminPw && (
+        <AdminChangePasswordModal onClose={() => setShowAdminPw(false)} />
+      )}
     </div>
   );
 }
@@ -2591,7 +3103,7 @@ function VisitorManagementSystem() {
               </button>
             )}
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontFamily: "'Lexend', sans-serif", fontSize: isMobile ? "1.05rem" : "1.3rem", fontWeight: 700, color: COLORS.navy, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+              <div style={{ fontFamily: "'Inter', sans-serif", fontSize: isMobile ? "1.05rem" : "1.3rem", fontWeight: 700, color: COLORS.navy, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                 {pageTitle[active]}
               </div>
               {!isMobile && (
