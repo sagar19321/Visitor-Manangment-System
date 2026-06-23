@@ -98,7 +98,30 @@ const VISIT_TYPES = [
   { id: "other", label: "Other", icon: "Users", color: COLORS.slate },
 ];
 
-const DEPARTMENTS = ["Operations", "Fleet & Drivers", "Bookings & Sales", "Accounts", "Human Resources", "Administration"];
+const DEPARTMENTS = [
+  "Operation",
+  "Human Resource",
+  "Car Rental",
+  "PTrack (Technology)",
+  "Billing",
+  "Finance & Accounts",
+  "Booking & Sales",
+  "Administration",
+  "CEO",
+  "Other",
+];
+
+const HOST_ROLES = [
+  "Manager",
+  "Team Lead",
+  "Senior Executive",
+  "Executive",
+  "Receptionist",
+  "Director",
+  "Supervisor",
+  "Accounts",
+  "Other",
+];
 
 const INITIAL_HOSTS = [
   { id: "h1", name: "Anil Deshmukh", dept: "Operations", phone: "+91 98220 11223" },
@@ -624,6 +647,32 @@ function ResumeUpload({ file, onSelect, onClear }) {
 const ID_TYPES = ["Aadhar Card", "PAN Card", "Driving License", "Voter ID", "Passport", "Other"];
 const DURATION_OPTIONS = ["Less than 30 mins", "30 mins - 1 hour", "1 - 2 hours", "2 - 4 hours", "Half day", "Full day"];
 
+const DRIVER_PURPOSE_OPTIONS = [
+  "DRIVER",
+  "REQUIRED ACCESSORIES",
+  "VEHICLE IN",
+  "NEW INDUCTION",
+  "PTRACK ISSUE",
+  "LEAVE APPLICATION",
+  "SALARY/REIMBURSEMENT EXPENSES",
+  "DOCUMENTS RENEWAL",
+  "CALL FOR MEETING",
+];
+
+const VENDOR_PURPOSE_OPTIONS = [
+  "VEHICLE INDUCTION",
+  "INVOICE SUBMISSION",
+  "CAB DRIVER ISSUES",
+  "APPLICATIONS SUBMISSION",
+  "MEET TO REKHA",
+  "ACCOUNTS DEPARTMENT",
+  "MEETING WITH MUNIR SIR",
+  "BILLING ISSUES",
+  "DOCUMENTS RENEWAL",
+  "CAB IN",
+  "CAB OUT APPLICATION",
+];
+
 function SectionCard({ title, children }) {
   return (
     <div style={{
@@ -691,7 +740,7 @@ function CheckInPage({ onClose, onSubmit, blacklist, hosts }) {
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: COLORS.ice }}>
+    <div style={{ height: "100vh", height: "100dvh", background: COLORS.ice, overflowY: "auto" }}>
       <div style={{
         background: "#fff", borderBottom: "1px solid #E7EBF3", padding: "16px 24px",
         display: "flex", alignItems: "center", gap: 14, position: "sticky", top: 0, zIndex: 5,
@@ -759,7 +808,7 @@ function CheckInPage({ onClose, onSubmit, blacklist, hosts }) {
               {VISIT_TYPES.map((t) => {
                 const active = form.type === t.id;
                 return (
-                  <button key={t.id} onClick={() => setForm({ ...form, type: t.id })} style={{
+                  <button key={t.id} onClick={() => setForm({ ...form, type: t.id, company: "" })} style={{
                     flex: "1 1 auto", display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
                     padding: "10px 12px", borderRadius: 10, cursor: "pointer", fontSize: "0.82rem", fontWeight: 700,
                     border: active ? `1.5px solid ${t.color}` : "1.5px solid #E3E8F2",
@@ -773,8 +822,22 @@ function CheckInPage({ onClose, onSubmit, blacklist, hosts }) {
             </div>
           </div>
 
-          <TextField label="Company / Organisation" placeholder="Company name" value={form.company}
-            onChange={(e) => setForm({ ...form, company: e.target.value })} />
+          {form.type === "driver" ? (
+            <SelectField label="Purpose / Visit Reason" required value={form.company}
+              onChange={(e) => setForm({ ...form, company: e.target.value })}>
+              <option value="">Select purpose</option>
+              {DRIVER_PURPOSE_OPTIONS.map((opt) => <option key={opt} value={opt}>{opt}</option>)}
+            </SelectField>
+          ) : form.type === "vendor" ? (
+            <SelectField label="Purpose / Visit Reason" required value={form.company}
+              onChange={(e) => setForm({ ...form, company: e.target.value })}>
+              <option value="">Select purpose</option>
+              {VENDOR_PURPOSE_OPTIONS.map((opt) => <option key={opt} value={opt}>{opt}</option>)}
+            </SelectField>
+          ) : (
+            <TextField label="Company / Organisation" placeholder="Company name" value={form.company}
+              onChange={(e) => setForm({ ...form, company: e.target.value })} />
+          )}
 
           <div style={{ marginBottom: 16 }}>
             <FieldLabel required>Purpose of Visit</FieldLabel>
@@ -910,35 +973,71 @@ function VisitorDetailModal({ visit, host, onClose, onCheckout, onBlacklist }) {
 
 function AddHostModal({ onClose, onSubmit }) {
   const [name, setName] = useState("");
-  const [dept, setDept] = useState(DEPARTMENTS[0]);
+  const [dept, setDept] = useState("");
+  const [role, setRole] = useState("");
   const [phone, setPhone] = useState("");
   const [error, setError] = useState("");
 
   function submit() {
-    if (!name.trim() || !phone.trim()) {
-      setError("Please fill in name and phone number.");
-      return;
-    }
-    if (phone.length !== 10) {
+    if (!name.trim()) { setError("Please enter the full name."); return; }
+    if (!dept) { setError("Please select a department."); return; }
+    if (!role) { setError("Please select a role / designation."); return; }
+    if (!phone.trim() || phone.length !== 10) {
       setError("Phone number must be exactly 10 digits.");
       return;
     }
-    onSubmit({ name: name.trim(), dept, phone: "+91 " + phone });
+    onSubmit({ name: name.trim(), dept, role, phone: "+91 " + phone });
   }
 
   return (
-    <Modal title="Add New Host" subtitle="Add an employee who visitors can come to meet" onClose={onClose} width={460}>
+    <Modal title="Add New Host" subtitle="Add an employee who visitors can come to meet" onClose={onClose} width={480}>
       <TextField label="Full Name" required placeholder="e.g. Rohan Kale" value={name}
         onChange={(e) => setName(e.target.value)} />
+
       <SelectField label="Department" required value={dept} onChange={(e) => setDept(e.target.value)}>
+        <option value="">Select department</option>
         {DEPARTMENTS.map((d) => <option key={d} value={d}>{d}</option>)}
       </SelectField>
-      <TextField label="Phone Number" required placeholder="9000000000" value={phone}
-        inputMode="numeric" maxLength={10}
-        onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))} />
+
+      <SelectField label="Role / Designation" required value={role} onChange={(e) => setRole(e.target.value)}>
+        <option value="">Select role</option>
+        {HOST_ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
+      </SelectField>
+
+      <div style={{ marginBottom: 16 }}>
+        <FieldLabel required>Phone Number</FieldLabel>
+        <div style={{ position: "relative" }}>
+          <span style={{
+            position: "absolute", left: 13, top: "50%", transform: "translateY(-50%)",
+            fontSize: "0.9rem", color: COLORS.slate, fontWeight: 600, pointerEvents: "none",
+          }}>+91</span>
+          <input
+            value={phone} inputMode="numeric" maxLength={10}
+            onChange={(e) => { setPhone(e.target.value.replace(/\D/g, "").slice(0, 10)); }}
+            placeholder="10-digit mobile number"
+            style={{ ...inputStyle, paddingLeft: 42 }}
+          />
+        </div>
+        {phone.length > 0 && phone.length < 10 && (
+          <div style={{ fontSize: "0.74rem", color: COLORS.amber, fontWeight: 600, marginTop: 5 }}>
+            {10 - phone.length} more digit{10 - phone.length !== 1 ? "s" : ""} needed
+          </div>
+        )}
+        {phone.length === 10 && (
+          <div style={{ fontSize: "0.74rem", color: COLORS.success, fontWeight: 600, marginTop: 5, display: "flex", alignItems: "center", gap: 4 }}>
+            <Icon name="CheckCircle2" size={13} /> Valid number
+          </div>
+        )}
+      </div>
 
       {error && (
-        <div style={{ color: COLORS.danger, fontSize: "0.82rem", fontWeight: 600, marginBottom: 12 }}>{error}</div>
+        <div style={{
+          color: COLORS.danger, fontSize: "0.82rem", fontWeight: 600, marginBottom: 12,
+          background: "rgba(214,69,69,0.07)", padding: "9px 12px", borderRadius: 9,
+          display: "flex", alignItems: "center", gap: 7,
+        }}>
+          <Icon name="AlertCircle" size={15} /> {error}
+        </div>
       )}
 
       <div style={{ display: "flex", gap: 10, marginTop: 6 }}>
@@ -950,7 +1049,10 @@ function AddHostModal({ onClose, onSubmit }) {
           flex: 2, padding: "12px", borderRadius: 10, border: "none",
           background: COLORS.royal, color: "#fff", fontWeight: 700, cursor: "pointer", fontSize: "0.88rem",
           boxShadow: "0 8px 20px -6px rgba(30,79,217,0.5)",
-        }}>Add Host</button>
+          display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+        }}>
+          <Icon name="UserPlus" size={16} /> Add Host
+        </button>
       </div>
     </Modal>
   );
@@ -1328,6 +1430,29 @@ function EmptyState({ text }) {
   );
 }
 
+function DashStatCard({ label, value, iconName, bgColor, iconColor }) {
+  return (
+    <div style={{
+      background: "#fff", borderRadius: 12, padding: "16px 18px",
+      border: "1px solid #EEF1F7", display: "flex", justifyContent: "space-between",
+      alignItems: "center", minWidth: 0,
+    }}>
+      <div>
+        <div style={{ fontSize: "0.66rem", fontWeight: 700, color: COLORS.slate, letterSpacing: "0.07em", marginBottom: 8 }}>
+          {label}
+        </div>
+        <div style={{ fontSize: "2rem", fontWeight: 800, color: COLORS.navy, lineHeight: 1 }}>{value}</div>
+      </div>
+      <div style={{
+        width: 44, height: 44, borderRadius: 11, background: bgColor,
+        display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+      }}>
+        <Icon name={iconName} size={22} color={iconColor} />
+      </div>
+    </div>
+  );
+}
+
 function VisitorManagementSystem() {
   const [role, setRole] = useState(null); // null | "receptionist" | "admin"
   const [active, setActive] = useState("dashboard");
@@ -1466,7 +1591,7 @@ function VisitorManagementSystem() {
             }}>
               <Icon name="UserPlus" size={17} /> Add Host
             </button>
-          ) : (
+          ) : (active === "dashboard" || active === "visitors") ? (
             <button onClick={() => setShowCheckIn(true)} style={{
               display: "flex", alignItems: "center", gap: 8, padding: "11px 20px", borderRadius: 11,
               border: "none", background: COLORS.royal, color: "#fff", fontWeight: 700, fontSize: "0.86rem",
@@ -1474,7 +1599,7 @@ function VisitorManagementSystem() {
             }}>
               <Icon name="UserPlus" size={17} /> New Check-in
             </button>
-          )}
+          ) : null}
         </div>
 
         <div style={{ padding: "28px 32px" }}>
@@ -1584,6 +1709,9 @@ function VisitorManagementSystem() {
                       <div style={{ flex: 1 }}>
                         <div style={{ fontWeight: 700, color: COLORS.navy, fontSize: "0.92rem" }}>{h.name}</div>
                         <div style={{ fontSize: "0.76rem", color: COLORS.slate }}>{h.dept}</div>
+                        {h.role && (
+                          <div style={{ fontSize: "0.72rem", color: COLORS.royal, fontWeight: 600, marginTop: 2 }}>{h.role}</div>
+                        )}
                       </div>
                       <button onClick={() => removeHost(h.id)} title="Remove host" style={{
                         border: "none", background: "#F4F7FC", borderRadius: 8, padding: "6px 8px",
