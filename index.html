@@ -301,6 +301,7 @@ const ICON_PATHS = {
   AlertCircle: ["M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20", "M12 8v4", "M12 16h.01"],
   VideoOff: ["M10.66 6H14a2 2 0 0 1 2 2v2.5l5.248-3.062A.5.5 0 0 1 22 7.87v8.196", "M16 16a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2", "M2 2l20 20"],
   Car: ["M14 16.5H9m10 0h1.5a1 1 0 0 0 1-1v-3.7a1 1 0 0 0-.4-.8L19 9l-1.5-4.5A2 2 0 0 0 15.6 3H8.4a2 2 0 0 0-1.9 1.5L5 9l-2.1 1.9a1 1 0 0 0-.4.8V15.5a1 1 0 0 0 1 1H5", "M7 16.5a2 2 0 1 0 4 0 2 2 0 1 0-4 0", "M14 16.5a2 2 0 1 0 4 0 2 2 0 1 0-4 0", "M2 11h17"],
+  CreditCard: ["M2 6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2z", "M2 10h20", "M6 15h2"],
 };
 
 function Icon({ name, size = 16, color = "currentColor", style = {} }) {
@@ -1064,13 +1065,13 @@ function CheckInPage({ onClose, onSubmit, blacklist, hosts }) {
 
           {form.type === "driver" ? (
             <SelectField label="Purpose / Visit Reason" required value={form.company}
-              onChange={(e) => setForm({ ...form, company: e.target.value })}>
+              onChange={(e) => setForm({ ...form, company: e.target.value, purpose: e.target.value })}>
               <option value="">Select purpose</option>
               {DRIVER_PURPOSE_OPTIONS.map((opt) => <option key={opt} value={opt}>{opt}</option>)}
             </SelectField>
           ) : form.type === "vendor" ? (
             <SelectField label="Purpose / Visit Reason" required value={form.company}
-              onChange={(e) => setForm({ ...form, company: e.target.value })}>
+              onChange={(e) => setForm({ ...form, company: e.target.value, purpose: e.target.value })}>
               <option value="">Select purpose</option>
               {VENDOR_PURPOSE_OPTIONS.map((opt) => <option key={opt} value={opt}>{opt}</option>)}
             </SelectField>
@@ -1079,14 +1080,16 @@ function CheckInPage({ onClose, onSubmit, blacklist, hosts }) {
               onChange={(e) => setForm({ ...form, company: e.target.value })} />
           )}
 
-          <div style={{ marginBottom: 16 }}>
-            <FieldLabel required>Purpose of Visit</FieldLabel>
-            <textarea
-              placeholder="Describe the purpose..." value={form.purpose} rows={3}
-              onChange={(e) => setForm({ ...form, purpose: e.target.value })}
-              style={{ ...inputStyle, resize: "vertical", fontFamily: "inherit" }}
-            />
-          </div>
+          {form.type !== "driver" && form.type !== "vendor" && (
+            <div style={{ marginBottom: 16 }}>
+              <FieldLabel required>Purpose of Visit</FieldLabel>
+              <textarea
+                placeholder="Describe the purpose..." value={form.purpose} rows={3}
+                onChange={(e) => setForm({ ...form, purpose: e.target.value })}
+                style={{ ...inputStyle, resize: "vertical", fontFamily: "inherit" }}
+              />
+            </div>
+          )}
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
             <SelectField label="Person to Meet" required value={form.hostId}
@@ -1161,6 +1164,61 @@ function DetailRow({ iconName, label, value }) {
   );
 }
 
+function printVisitorBadge(visit, host) {
+  const t = VISIT_TYPES.find((x) => x.id === visit.type) || VISIT_TYPES[VISIT_TYPES.length - 1];
+  const win = window.open("", "_blank", "width=420,height=620");
+  if (!win) { alert("Please allow pop-ups to print the badge."); return; }
+  const photoHtml = visit.photo
+    ? `<img src="${visit.photo}" style="width:96px;height:96px;border-radius:50%;object-fit:cover;border:3px solid #1E4FD9;" />`
+    : `<div style="width:96px;height:96px;border-radius:50%;background:#E3E8F2;display:flex;align-items:center;justify-content:center;font-size:34px;font-weight:800;color:#0B1E3D;">${(visit.name || "?").trim().charAt(0).toUpperCase()}</div>`;
+  win.document.write(`
+    <!DOCTYPE html><html><head><title>Visitor Badge — ${visit.name}</title>
+    <meta charset="UTF-8" />
+    <style>
+      * { box-sizing: border-box; }
+      body { font-family: Arial, Helvetica, sans-serif; margin:0; padding:24px; background:#fff; }
+      .badge {
+        width: 320px; border: 2px solid #0B1E3D; border-radius: 16px; overflow: hidden;
+        margin: 0 auto;
+      }
+      .badge-header { background:#0B1E3D; color:#fff; text-align:center; padding:14px 10px 10px; }
+      .badge-header .co { font-size:13px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; }
+      .badge-header .sub { font-size:10px; opacity:.75; margin-top:2px; }
+      .badge-body { padding: 18px 18px 14px; text-align:center; }
+      .badge-name { font-size:18px; font-weight:800; color:#0B1E3D; margin-top:10px; }
+      .badge-type { display:inline-block; margin-top:6px; padding:4px 12px; border-radius:20px; font-size:11px; font-weight:700; background:${t.color}1A; color:${t.color}; }
+      .badge-rows { margin-top:14px; text-align:left; border-top:1px dashed #C9D3E5; padding-top:12px; }
+      .badge-row { display:flex; justify-content:space-between; font-size:12px; padding:4px 0; }
+      .badge-row .lbl { color:#5B6B8C; font-weight:600; }
+      .badge-row .val { color:#0B1E3D; font-weight:700; text-align:right; }
+      .badge-footer { background:#F4F7FC; text-align:center; font-size:10px; color:#5B6B8C; padding:8px; }
+      @media print { body { padding:0; } }
+    </style>
+    </head><body>
+      <div class="badge">
+        <div class="badge-header">
+          <div class="co">Poona Rent A Cab Pvt. Ltd.</div>
+          <div class="sub">VISITOR PASS</div>
+        </div>
+        <div class="badge-body">
+          ${photoHtml}
+          <div class="badge-name">${visit.name || ""}</div>
+          <div class="badge-type">${t.label}</div>
+          <div class="badge-rows">
+            <div class="badge-row"><span class="lbl">Visiting</span><span class="val">${host ? host.name : "—"}</span></div>
+            <div class="badge-row"><span class="lbl">Department</span><span class="val">${host ? host.dept : "—"}</span></div>
+            <div class="badge-row"><span class="lbl">Check-in</span><span class="val">${fmtTime(visit.checkIn)}, ${fmtDate(visit.checkIn)}</span></div>
+            <div class="badge-row"><span class="lbl">Visit ID</span><span class="val">${visit.id}</span></div>
+          </div>
+        </div>
+        <div class="badge-footer">Please return this badge at check-out</div>
+      </div>
+      <` + `script>window.onload = function() { window.print(); };</` + `script>
+    </body></html>
+  `);
+  win.document.close();
+}
+
 function VisitorDetailModal({ visit, host, onClose, onCheckout, onBlacklist }) {
   const t = VISIT_TYPES.find((x) => x.id === visit.type);
   return (
@@ -1200,6 +1258,12 @@ function VisitorDetailModal({ visit, host, onClose, onCheckout, onBlacklist }) {
             Visit completed · {durationLabel(minutesBetween(visit.checkIn, visit.checkOut))}
           </div>
         )}
+        <button onClick={() => printVisitorBadge(visit, host)} style={{
+          padding: "12px 16px", borderRadius: 10, border: `1.5px solid ${COLORS.royal}33`,
+          background: "#fff", color: COLORS.royal, fontWeight: 700, cursor: "pointer", fontSize: "0.85rem",
+        }}>
+          <Icon name="CreditCard" size={15} style={{ marginRight: 6, verticalAlign: "-2px" }} /> Print Badge
+        </button>
         <button onClick={() => { onBlacklist(visit); onClose(); }} style={{
           padding: "12px 16px", borderRadius: 10, border: `1.5px solid ${COLORS.danger}33`,
           background: "#fff", color: COLORS.danger, fontWeight: 700, cursor: "pointer", fontSize: "0.85rem",
@@ -1749,20 +1813,37 @@ function LoginScreen({ onLogin }) {
                   <Icon name="ArrowLeft" size={15} /> Back to role selection
                 </button>
 
-                {/* Admin avatar */}
-                <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 24 }}>
-                  <div style={{ position: "relative" }}>
-                    <div style={{
-                      width: 54, height: 54, borderRadius: 16, background: `linear-gradient(135deg, ${COLORS.royal}, #2d6af0)`,
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      boxShadow: "0 8px 20px -6px rgba(30,79,217,0.5)",
-                    }}>
-                      <Icon name="Lock" size={24} color="#fff" />
+                {/* Admin access badge */}
+                <div style={{
+                  position: "relative", borderRadius: 18, overflow: "hidden", marginBottom: 24,
+                  background: `linear-gradient(135deg, ${COLORS.navy} 0%, ${COLORS.royal} 65%, #2d6af0 100%)`,
+                  padding: "20px 20px 18px",
+                }}>
+                  <div style={{
+                    position: "absolute", inset: 0, opacity: 0.5, pointerEvents: "none",
+                    backgroundImage: "repeating-linear-gradient(115deg, rgba(255,255,255,0.07) 0px, rgba(255,255,255,0.07) 2px, transparent 2px, transparent 14px)",
+                  }} />
+                  <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                      <div style={{
+                        width: 46, height: 46, borderRadius: 13, background: "rgba(255,255,255,0.16)",
+                        border: "1px solid rgba(255,255,255,0.3)",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                      }}>
+                        <Icon name="Lock" size={21} color="#fff" />
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 800, color: "#fff", fontSize: "1.08rem", letterSpacing: "-0.01em" }}>Admin Login</div>
+                        <div style={{ color: "rgba(255,255,255,0.7)", fontSize: "0.74rem", marginTop: 2 }}>Poona Rent A Cab — Control Console</div>
+                      </div>
                     </div>
-                  </div>
-                  <div>
-                    <div style={{ fontWeight: 800, color: COLORS.navy, fontSize: "1.2rem", letterSpacing: "-0.01em" }}>Admin Login</div>
-                    <div style={{ color: COLORS.slate, fontSize: "0.78rem", marginTop: 3 }}>Secure access — credentials required</div>
+                    <div style={{
+                      fontSize: "0.62rem", fontWeight: 800, color: "#fff", padding: "5px 9px",
+                      borderRadius: 7, background: "rgba(255,255,255,0.16)", border: "1px solid rgba(255,255,255,0.28)",
+                      letterSpacing: "0.04em", whiteSpace: "nowrap",
+                    }}>
+                      LEVEL 5 · FULL ACCESS
+                    </div>
                   </div>
                 </div>
 
@@ -1849,6 +1930,23 @@ function LoginScreen({ onLogin }) {
                   )}
                 </button>
 
+                <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+                  <div style={{
+                    flex: 1, display: "flex", alignItems: "center", gap: 6, padding: "9px 10px",
+                    borderRadius: 10, background: "rgba(11,30,61,0.04)", border: "1px solid #EEF1F7",
+                  }}>
+                    <Icon name="ShieldAlert" size={13} color={COLORS.slate} />
+                    <span style={{ fontSize: "0.68rem", color: COLORS.slate, fontWeight: 600 }}>256-bit encrypted</span>
+                  </div>
+                  <div style={{
+                    flex: 1, display: "flex", alignItems: "center", gap: 6, padding: "9px 10px",
+                    borderRadius: 10, background: "rgba(11,30,61,0.04)", border: "1px solid #EEF1F7",
+                  }}>
+                    <Icon name="Clock" size={13} color={COLORS.slate} />
+                    <span style={{ fontSize: "0.68rem", color: COLORS.slate, fontWeight: 600 }}>Auto-lock 15 min idle</span>
+                  </div>
+                </div>
+
 
               </div>
             )}
@@ -1866,20 +1964,37 @@ function LoginScreen({ onLogin }) {
                   <Icon name="ArrowLeft" size={15} /> Back to role selection
                 </button>
 
-                {/* Reception avatar */}
-                <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 24 }}>
-                  <div style={{ position: "relative" }}>
-                    <div style={{
-                      width: 54, height: 54, borderRadius: 16, background: `linear-gradient(135deg, ${COLORS.success}, #29c98a)`,
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      boxShadow: "0 8px 20px -6px rgba(31,157,109,0.5)",
-                    }}>
-                      <Icon name="UserCheck" size={24} color="#fff" />
+                {/* Reception access badge */}
+                <div style={{
+                  position: "relative", borderRadius: 18, overflow: "hidden", marginBottom: 24,
+                  background: `linear-gradient(135deg, ${COLORS.navy} 0%, ${COLORS.success} 70%, #29c98a 100%)`,
+                  padding: "20px 20px 18px",
+                }}>
+                  <div style={{
+                    position: "absolute", inset: 0, opacity: 0.5, pointerEvents: "none",
+                    backgroundImage: "repeating-linear-gradient(115deg, rgba(255,255,255,0.07) 0px, rgba(255,255,255,0.07) 2px, transparent 2px, transparent 14px)",
+                  }} />
+                  <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                      <div style={{
+                        width: 46, height: 46, borderRadius: 13, background: "rgba(255,255,255,0.16)",
+                        border: "1px solid rgba(255,255,255,0.3)",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                      }}>
+                        <Icon name="UserCheck" size={21} color="#fff" />
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 800, color: "#fff", fontSize: "1.08rem", letterSpacing: "-0.01em" }}>Receptionist Login</div>
+                        <div style={{ color: "rgba(255,255,255,0.7)", fontSize: "0.74rem", marginTop: 2 }}>Front Desk — Issued by Admin</div>
+                      </div>
                     </div>
-                  </div>
-                  <div>
-                    <div style={{ fontWeight: 800, color: COLORS.navy, fontSize: "1.2rem", letterSpacing: "-0.01em" }}>Receptionist Login</div>
-                    <div style={{ color: COLORS.slate, fontSize: "0.78rem", marginTop: 3 }}>Issued by Admin — enter your ID & password</div>
+                    <div style={{
+                      fontSize: "0.62rem", fontWeight: 800, color: "#fff", padding: "5px 9px",
+                      borderRadius: 7, background: "rgba(255,255,255,0.16)", border: "1px solid rgba(255,255,255,0.28)",
+                      letterSpacing: "0.04em", whiteSpace: "nowrap",
+                    }}>
+                      LEVEL 2 · FRONT DESK
+                    </div>
                   </div>
                 </div>
 
@@ -1968,15 +2083,21 @@ function LoginScreen({ onLogin }) {
                   )}
                 </button>
 
-                <div style={{
-                  marginTop: 18, padding: "10px 14px", borderRadius: 10,
-                  background: "rgba(11,30,61,0.04)", border: "1px solid #EEF1F7",
-                  display: "flex", alignItems: "center", gap: 8,
-                }}>
-                  <Icon name="ShieldAlert" size={14} color={COLORS.slate} />
-                  <span style={{ fontSize: "0.72rem", color: COLORS.slate, fontWeight: 600, lineHeight: 1.4 }}>
-                    Forgot your password? Contact the Admin to reset it.
-                  </span>
+                <div style={{ display: "flex", gap: 8, marginTop: 18 }}>
+                  <div style={{
+                    flex: 1, display: "flex", alignItems: "center", gap: 6, padding: "9px 10px",
+                    borderRadius: 10, background: "rgba(11,30,61,0.04)", border: "1px solid #EEF1F7",
+                  }}>
+                    <Icon name="ShieldAlert" size={13} color={COLORS.slate} />
+                    <span style={{ fontSize: "0.68rem", color: COLORS.slate, fontWeight: 600 }}>Encrypted session</span>
+                  </div>
+                  <div style={{
+                    flex: 1, display: "flex", alignItems: "center", gap: 6, padding: "9px 10px",
+                    borderRadius: 10, background: "rgba(11,30,61,0.04)", border: "1px solid #EEF1F7",
+                  }}>
+                    <Icon name="Lock" size={13} color={COLORS.slate} />
+                    <span style={{ fontSize: "0.68rem", color: COLORS.slate, fontWeight: 600 }}>Forgot? Ask Admin</span>
+                  </div>
                 </div>
               </div>
             )}
