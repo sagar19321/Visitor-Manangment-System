@@ -318,6 +318,44 @@ function Icon({ name, size = 16, color = "currentColor", style = {} }) {
 }
 
 /* ---------- Design tokens ---------- */
+/* ====== Google Sheets Backend Config ====== */
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzZR2_WXQAoCB3aIpm9Fn821sM8S9H6CNjGe69musqwXPDcu1sH41lfPPD-6YrHLNnQ/exec";
+const SHEETS_API_KEY = "PRAC-2026-POONA-SAGAR-DEV"; // must match API_KEY in your Apps Script
+
+async function apiGet(type) {
+  try {
+    const res = await fetch(`${WEB_APP_URL}?type=${type}&key=${SHEETS_API_KEY}`);
+    const data = await res.json();
+    if (data.error) { console.error("apiGet error:", data.error); return null; }
+    return data;
+  } catch (err) {
+    console.error("apiGet failed:", err);
+    return null;
+  }
+}
+
+async function apiPost(action, payload) {
+  try {
+    const res = await fetch(WEB_APP_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain" }, // avoids CORS preflight on Apps Script
+      body: JSON.stringify({ key: SHEETS_API_KEY, action, ...payload }),
+    });
+    const data = await res.json();
+    if (data.error) console.error("apiPost error:", data.error);
+    return data;
+  } catch (err) {
+    console.error("apiPost failed:", err);
+    return null;
+  }
+}
+
+function toDateOrNull(v) {
+  if (!v) return null;
+  const d = new Date(v);
+  return isNaN(d.getTime()) ? null : d;
+}
+
 const COLORS = {
   navy: "#0B1E3D",
   navyLight: "#142B52",
@@ -465,11 +503,13 @@ function exportBlacklistAuditLog(blacklist) {
 
 function seedVisits() {
   const now = new Date();
+  let ptSeed = 0;
   const mk = (offsetHrs, durMins, name, phone, type, hostId, purpose, status, company) => {
     const checkIn = new Date(now.getTime() - offsetHrs * 3600000);
     const checkOut = status === "checked-out" ? new Date(checkIn.getTime() + durMins * 60000) : null;
+    ptSeed++;
     return {
-      id: "v" + Math.random().toString(36).slice(2, 9),
+      id: "PT" + String(ptSeed).padStart(3, "0"),
       name, phone, company,
       type, hostId, purpose, status,
       checkIn, checkOut,
@@ -3061,6 +3101,31 @@ function VisitorManagementSystem() {
   const [blacklist, setBlacklist] = useState([
     { phone: "+91 99887 66554", name: "Deepak Rane", reason: "Unauthorized entry attempt", date: new Date(Date.now() - 12 * 86400000) },
   ]);
+  const [syncing, setSyncing] = useState(true);
+
+  // Load real data from Google Sheet on first load
+  useEffect(() => {
+    (async () => {
+      const all = await apiGet("");
+      if (all) {
+        if (Array.isArray(all.visits) && all.visits.length) {
+          setVisits(all.visits.map((v) => ({
+            ...v,
+            checkIn: toDateOrNull(v.checkIn) || new Date(),
+            checkOut: toDateOrNull(v.checkOut),
+            vip: v.vip === true || v.vip === "TRUE" || v.vip === "true",
+            blacklisted: v.blacklisted === true || v.blacklisted === "TRUE" || v.blacklisted === "true",
+          })));
+        }
+        if (Array.isArray(all.hosts) && all.hosts.length) setHosts(all.hosts);
+        if (Array.isArray(all.blacklist) && all.blacklist.length) {
+          setBlacklist(all.blacklist.map((b) => ({ ...b, date: toDateOrNull(b.date) || new Date() })));
+        }
+      }
+      setSyncing(false);
+    })();
+  }, []);
+
   const [showCheckIn, setShowCheckIn] = useState(false);
   const [showAddHost, setShowAddHost] = useState(false);
   const [selectedVisit, setSelectedVisit] = useState(null);
@@ -3096,8 +3161,15 @@ function VisitorManagementSystem() {
   }, [checkedOutToday]);
 
   function handleCheckIn(form) {
+    // Generate next PT ID based on all existing visits
+    const maxNum = visits.reduce((max, v) => {
+      const match = v.id && v.id.match(/^PT(\d+)$/);
+      return match ? Math.max(max, parseInt(match[1], 10)) : max;
+    }, 0);
+    const ptId = "PT" + String(maxNum + 1).padStart(3, "0");
+
     const newVisit = {
-      id: "v" + Math.random().toString(36).slice(2, 9),
+      id: ptId,
       name: form.name, phone: form.phone, company: form.company || "—",
       email: form.email || "", address: form.address || "",
       idType: form.idType || "", idNumber: form.idNumber || "",
@@ -3109,26 +3181,35 @@ function VisitorManagementSystem() {
     };
     setVisits((v) => [newVisit, ...v]);
     setShowCheckIn(false);
+    apiPost("addVisit", { visit: { ...newVisit, checkIn: newVisit.checkIn.toISOString(), checkOut: "" } });
   }
 
   function handleCheckout(id) {
-    setVisits((vs) => vs.map((v) => v.id === id ? { ...v, status: "checked-out", checkOut: new Date() } : v));
+    const checkOutTime = new Date();
+    setVisits((vs) => vs.map((v) => v.id === id ? { ...v, status: "checked-out", checkOut: checkOutTime } : v));
+    apiPost("checkoutVisit", { id, checkOut: checkOutTime.toISOString() });
   }
 
   function handleBlacklist(visit) {
-    setBlacklist((bl) => [...bl, { phone: visit.phone, name: visit.name, reason: "Manually added by admin", date: new Date() }]);
+    const entry = { phone: visit.phone, name: visit.name, reason: "Manually added by admin", date: new Date() };
+    setBlacklist((bl) => [...bl, entry]);
+    apiPost("addBlacklist", { entry: { ...entry, date: entry.date.toISOString() } });
   }
 
   function removeFromBlacklist(phone) {
     setBlacklist((bl) => bl.filter((b) => b.phone !== phone));
+    apiPost("removeBlacklist", { phone });
   }
 
   function addHost(host) {
-    setHosts((hs) => [...hs, { ...host, id: "h" + Math.random().toString(36).slice(2, 9) }]);
+    const newHost = { ...host, id: "h" + Math.random().toString(36).slice(2, 9) };
+    setHosts((hs) => [...hs, newHost]);
+    apiPost("addHost", { host: newHost });
   }
 
   function removeHost(id) {
     setHosts((hs) => hs.filter((h) => h.id !== id));
+    apiPost("deleteHost", { id });
   }
 
   const filteredVisits = useMemo(() => {
