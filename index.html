@@ -259,7 +259,7 @@ async function loadReceptionAccounts() {
 }
 async function checkReceptionLogin(inputId, inputPw) {
   const accounts = await loadReceptionAccounts();
-  return accounts.find(a => a.name.trim().toLowerCase() === inputId.trim().toLowerCase() && a.password === inputPw) || null;
+  return accounts.find(a => a.name.trim().toLowerCase() === inputId.trim().toLowerCase() && String(a.password).trim() === String(inputPw).trim()) || null;
 }
 
 /* ---------- Icon helper: self-contained inline SVG (no external icon library needed) ---------- */
@@ -2736,7 +2736,7 @@ function LoginScreen({
     }
     setLoading(true);
     const adminCreds = await loadAdminCreds();
-    if (pw !== adminCreds.password) {
+    if (String(pw).trim() !== String(adminCreds.password).trim()) {
       setErr("Incorrect password. Please try again.");
       setLoading(false);
       return;
@@ -4925,7 +4925,7 @@ function AdminChangePasswordModal({
     }
     setErr("");
     const adminCreds = await loadAdminCreds();
-    if (current !== adminCreds.password) {
+    if (String(current).trim() !== String(adminCreds.password).trim()) {
       setErr("Current password is incorrect.");
       return;
     }
