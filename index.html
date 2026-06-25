@@ -220,50 +220,33 @@ function useWindowWidth() {
   return w;
 }
 
-/* ---------- Admin credentials ---------- */
-const ADMIN_CREDS_KEY = "vos_admin_credentials";
-function loadAdminCreds() {
+/* ---------- IST Time Helper ---------- */
+function toISO_IST(date) {
+  const pad = n => String(n).padStart(2, '0');
+  const ist = new Date(date.getTime() + 5.5 * 3600000);
+  return `${ist.getUTCFullYear()}-${pad(ist.getUTCMonth()+1)}-${pad(ist.getUTCDate())} ${pad(ist.getUTCHours())}:${pad(ist.getUTCMinutes())}:${pad(ist.getUTCSeconds())} IST`;
+}
+
+/* ---------- Admin credentials (Sheet-based) ---------- */
+async function loadAdminCreds() {
   try {
-    const raw = localStorage.getItem(ADMIN_CREDS_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (parsed && parsed.password) return parsed;
-    }
+    const data = await apiGet("adminCreds");
+    if (Array.isArray(data) && data.length > 0 && data[0].password) return data[0];
   } catch (e) {}
   return { email: "admin@poonatravels.com", password: "admin123" };
 }
-function saveAdminCreds(creds) {
-  try { localStorage.setItem(ADMIN_CREDS_KEY, JSON.stringify(creds)); } catch (e) {}
-}
 
-/* ---------- Reception accounts (multi-account) ---------- */
-const RECEPTION_ACCOUNTS_KEY = "vos_reception_accounts";
-function loadReceptionAccounts() {
+/* ---------- Reception accounts (Sheet-based) ---------- */
+async function loadReceptionAccounts() {
   try {
-    const raw = localStorage.getItem(RECEPTION_ACCOUNTS_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-    }
+    const data = await apiGet("receptionAccounts");
+    if (Array.isArray(data) && data.length > 0) return data;
   } catch (e) {}
   return [{ id: "rec_default", name: "Reception", password: "reception123", email: "reception@company.com", createdAt: new Date().toISOString() }];
 }
-function saveReceptionAccounts(accounts) {
-  try { localStorage.setItem(RECEPTION_ACCOUNTS_KEY, JSON.stringify(accounts)); } catch (e) {}
-}
 
-/* Legacy single-creds — kept for login check backward compat */
-const RECEPTION_CREDS_KEY = "vos_reception_credentials";
-function loadReceptionCreds() {
-  // Now we check against accounts list
-  const accounts = loadReceptionAccounts();
-  return accounts[0] || { id: "reception", password: "reception123" };
-}
-function saveReceptionCreds(creds) {
-  try { localStorage.setItem(RECEPTION_CREDS_KEY, JSON.stringify(creds)); } catch (e) {}
-}
-function checkReceptionLogin(inputId, inputPw) {
-  const accounts = loadReceptionAccounts();
+async function checkReceptionLogin(inputId, inputPw) {
+  const accounts = await loadReceptionAccounts();
   return accounts.find(a =>
     a.name.trim().toLowerCase() === inputId.trim().toLowerCase() && a.password === inputPw
   ) || null;
@@ -319,7 +302,7 @@ function Icon({ name, size = 16, color = "currentColor", style = {} }) {
 
 /* ---------- Design tokens ---------- */
 /* ====== Google Sheets Backend Config ====== */
-const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzZR2_WXQAoCB3aIpm9Fn821sM8S9H6CNjGe69musqwXPDcu1sH41lfPPD-6YrHLNnQ/exec";
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbz23_CdgdfGQZIpoTVpzlFx4KzP3MvqUPPCk4fqjh49yppp6ix4nek0wYQVSGkn0wsL/exec";
 const SHEETS_API_KEY = "PRAC-2026-POONA-SAGAR-DEV"; // must match API_KEY in your Apps Script
 
 async function apiGet(type) {
@@ -1336,7 +1319,7 @@ function AddHostModal({ onClose, onSubmit }) {
   return (
     <Modal title="Add New Host" subtitle="Add an employee who visitors can come to meet" onClose={onClose} width={480}>
       <TextField label="Full Name" required placeholder="e.g. Rohan Kale" value={name}
-        onChange={(e) => setName(e.target.value)} />
+        onChange={(e) => setName(e.target.value.replace(/[^a-zA-Z\s\u0900-\u097F]/g, ""))} />
 
       <SelectField label="Department" required value={dept} onChange={(e) => setDept(e.target.value)}>
         <option value="">Select department</option>
@@ -1586,30 +1569,37 @@ function LoginScreen({ onLogin }) {
   const [recErr, setRecErr] = useState("");
   const [recLoading, setRecLoading] = useState(false);
 
-  function submitAdmin(e) {
+  async function submitAdmin(e) {
     if (e && e.preventDefault) e.preventDefault();
     if (pw.trim().length === 0) { setErr("Please enter your password"); return; }
-    const adminCreds = loadAdminCreds();
-    if (pw !== adminCreds.password) { setErr("Incorrect password. Please try again."); return; }
-    setErr("");
     setLoading(true);
-    setTimeout(() => { setLoading(false); onLogin("admin"); }, 900);
+    const adminCreds = await loadAdminCreds();
+    if (pw !== adminCreds.password) {
+      setErr("Incorrect password. Please try again.");
+      setLoading(false);
+      return;
+    }
+    setErr("");
+    onLogin("admin");
+    setLoading(false);
   }
 
-  function submitReception(e) {
+  async function submitReception(e) {
     if (e && e.preventDefault) e.preventDefault();
     if (recId.trim().length === 0 || recPw.trim().length === 0) {
       setRecErr("Please enter both ID and password");
       return;
     }
-    const matched = checkReceptionLogin(recId, recPw);
+    setRecLoading(true);
+    const matched = await checkReceptionLogin(recId, recPw);
     if (!matched) {
       setRecErr("Invalid ID or password");
+      setRecLoading(false);
       return;
     }
     setRecErr("");
-    setRecLoading(true);
-    setTimeout(() => { setRecLoading(false); onLogin("receptionist"); }, 700);
+    onLogin("receptionist");
+    setRecLoading(false);
   }
 
   return (
@@ -2649,12 +2639,13 @@ function AdminChangePasswordModal({ onClose }) {
   const [err, setErr] = useState("");
   const [done, setDone] = useState(false);
 
-  function handleSubmit() {
-    const adminCreds = loadAdminCreds();
-    if (current !== adminCreds.password) { setErr("Current password is incorrect."); return; }
+  async function handleSubmit() {
     if (!next.trim()) { setErr("Please enter a new password."); return; }
     if (next !== confirm) { setErr("New passwords do not match."); return; }
-    saveAdminCreds({ ...adminCreds, password: next });
+    setErr("");
+    const adminCreds = await loadAdminCreds();
+    if (current !== adminCreds.password) { setErr("Current password is incorrect."); return; }
+    await apiPost("updateAdminPassword", { password: next });
     setDone(true);
     setTimeout(() => onClose(), 1400);
   }
@@ -2753,37 +2744,43 @@ function AdminChangePasswordModal({ onClose }) {
 /* ── Main Reception Access Panel ── */
 function ReceptionAccessPanel() {
   const [tab, setTab] = useState("accounts"); // "accounts" | "admin"
-  const [accounts, setAccounts] = useState(() => loadReceptionAccounts());
+  const [accounts, setAccounts] = useState([]);
+  const [acctLoading, setAcctLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
   const [resetTarget, setResetTarget] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [flashMsg, setFlashMsg] = useState("");
   const [showAdminPw, setShowAdminPw] = useState(false);
 
+  useEffect(() => {
+    (async () => {
+      const data = await loadReceptionAccounts();
+      setAccounts(data);
+      setAcctLoading(false);
+    })();
+  }, []);
+
   function flash(msg) {
     setFlashMsg(msg);
     setTimeout(() => setFlashMsg(""), 2500);
   }
 
-  function handleAdd(acct) {
-    const updated = [...accounts, acct];
-    setAccounts(updated);
-    saveReceptionAccounts(updated);
+  async function handleAdd(acct) {
+    setAccounts(prev => [...prev, acct]);
+    await apiPost("addReceptionAccount", { account: acct });
     flash("Account added successfully.");
   }
 
-  function handleDelete(id) {
-    const updated = accounts.filter(a => a.id !== id);
-    setAccounts(updated);
-    saveReceptionAccounts(updated);
+  async function handleDelete(id) {
+    setAccounts(prev => prev.filter(a => a.id !== id));
+    await apiPost("deleteReceptionAccount", { id });
     setDeleteConfirm(null);
     flash("Account deleted.");
   }
 
-  function handleResetPw(id, newPw) {
-    const updated = accounts.map(a => a.id === id ? { ...a, password: newPw } : a);
-    setAccounts(updated);
-    saveReceptionAccounts(updated);
+  async function handleResetPw(id, newPw) {
+    setAccounts(prev => prev.map(a => a.id === id ? { ...a, password: newPw } : a));
+    await apiPost("updateReceptionAccount", { id, password: newPw });
     flash("Password reset successfully.");
   }
 
@@ -2845,7 +2842,11 @@ function ReceptionAccessPanel() {
           </div>
 
           {/* Account list */}
-          {accounts.length === 0 ? (
+          {acctLoading ? (
+            <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #EEF1F7", padding: "32px 20px", textAlign: "center", color: "#5B6B85", fontSize: "0.88rem" }}>
+              Loading accounts...
+            </div>
+          ) : accounts.length === 0 ? (
             <div style={{
               background: "#fff", borderRadius: 14, border: "1px solid #EEF1F7",
               padding: "40px 20px", textAlign: "center",
@@ -2913,7 +2914,7 @@ function ReceptionAccessPanel() {
                 </div>
               ))}
             </div>
-          )}
+          ) : null}
 
           <div style={{
             marginTop: 18, padding: "12px 14px", borderRadius: 10,
@@ -3094,7 +3095,7 @@ function ChangePasswordModal({ onClose }) {
 }
 
 function VisitorManagementSystem() {
-  const [role, setRole] = useState(null); // null | "receptionist" | "admin"
+  const [role, setRole] = useState(() => sessionStorage.getItem('vms_role') || null);
   const [active, setActive] = useState("dashboard");
   const [visits, setVisits] = useState(seedVisits);
   const [hosts, setHosts] = useState(INITIAL_HOSTS);
@@ -3181,19 +3182,23 @@ function VisitorManagementSystem() {
     };
     setVisits((v) => [newVisit, ...v]);
     setShowCheckIn(false);
-    apiPost("addVisit", { visit: { ...newVisit, checkIn: newVisit.checkIn.toISOString(), checkOut: "" } });
+    apiPost("addVisit", { visit: { ...newVisit, checkIn: toISO_IST(newVisit.checkIn), checkOut: "" } });
   }
 
   function handleCheckout(id) {
     const checkOutTime = new Date();
     setVisits((vs) => vs.map((v) => v.id === id ? { ...v, status: "checked-out", checkOut: checkOutTime } : v));
-    apiPost("checkoutVisit", { id, checkOut: checkOutTime.toISOString() });
+    apiPost("checkoutVisit", { id, checkOut: toISO_IST(checkOutTime) });
   }
 
   function handleBlacklist(visit) {
+    if (blacklist.some(b => b.phone === visit.phone)) {
+      alert(visit.name + " is already in the blacklist.");
+      return;
+    }
     const entry = { phone: visit.phone, name: visit.name, reason: "Manually added by admin", date: new Date() };
     setBlacklist((bl) => [...bl, entry]);
-    apiPost("addBlacklist", { entry: { ...entry, date: entry.date.toISOString() } });
+    apiPost("addBlacklist", { entry: { ...entry, date: toISO_IST(entry.date) } });
   }
 
   function removeFromBlacklist(phone) {
@@ -3215,15 +3220,15 @@ function VisitorManagementSystem() {
   const filteredVisits = useMemo(() => {
     return visits.filter((v) => {
       const matchesSearch = search.trim() === "" ||
-        v.name.toLowerCase().includes(search.toLowerCase()) ||
-        v.phone.includes(search) ||
-        v.company.toLowerCase().includes(search.toLowerCase());
+        (v.name || "").toLowerCase().includes(search.toLowerCase()) ||
+        (v.phone || "").includes(search) ||
+        (v.company || "").toLowerCase().includes(search.toLowerCase());
       const matchesType = typeFilter === "all" || v.type === typeFilter;
       return matchesSearch && matchesType;
     });
   }, [visits, search, typeFilter]);
 
-  if (!role) return <LoginScreen onLogin={(r) => setRole(r)} />;
+  if (!role) return <LoginScreen onLogin={(r) => { sessionStorage.setItem('vms_role', r); setRole(r); }} />;
 
   if (role === "receptionist") {
     return (
@@ -3233,7 +3238,7 @@ function VisitorManagementSystem() {
         activeVisitors={activeVisitors}
         onCheckIn={handleCheckIn}
         onCheckout={handleCheckout}
-        onLogout={() => setRole(null)}
+        onLogout={() => { sessionStorage.removeItem('vms_role'); setRole(null); }}
         hosts={hosts}
       />
     );
@@ -3266,7 +3271,7 @@ function VisitorManagementSystem() {
       <Sidebar
         active={active}
         setActive={(id) => { setActive(id); setSidebarOpen(false); }}
-        onLogout={() => setRole(null)}
+        onLogout={() => { sessionStorage.removeItem('vms_role'); setRole(null); }}
         pendingCount={activeVisitors.length}
         isMobile={isMobile}
         isOpen={sidebarOpen}
@@ -3569,8 +3574,33 @@ function VisitorManagementSystem() {
   );
 }
 
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() { return { hasError: true }; }
+  componentDidCatch(err, info) { console.error("VMS Error:", err, info); }
+  render() {
+    if (this.state.hasError) {
+      return React.createElement("div", {
+        style: { minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#F4F7FC" }
+      }, React.createElement("div", { style: { textAlign: "center", padding: 40 } },
+        React.createElement("div", { style: { fontSize: "2.5rem", marginBottom: 16 } }, "⚠️"),
+        React.createElement("div", { style: { fontWeight: 800, color: "#0B1E3D", fontSize: "1.1rem", marginBottom: 8 } }, "Something went wrong"),
+        React.createElement("div", { style: { color: "#5B6B85", fontSize: "0.85rem", marginBottom: 24 } }, "Please refresh the page to continue."),
+        React.createElement("button", {
+          onClick: () => window.location.reload(),
+          style: { padding: "10px 28px", borderRadius: 10, border: "none", background: "#1E4FD9", color: "#fff", fontWeight: 700, cursor: "pointer", fontSize: "0.95rem" }
+        }, "🔄 Refresh Page")
+      ));
+    }
+    return this.props.children;
+  }
+}
+
 const root = ReactDOM.createRoot(document.getElementById("root"));
-root.render(<VisitorManagementSystem />);
+root.render(React.createElement(ErrorBoundary, null, React.createElement(VisitorManagementSystem)));
 </script>
 </body>
 </html>
