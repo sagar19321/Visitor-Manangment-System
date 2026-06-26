@@ -207,7 +207,10 @@ const {
   useState,
   useMemo,
   useEffect,
-  useRef
+  useRef,
+  useCallback,
+  useContext,
+  createContext
 } = React;
 
 /* ── Company Logo (embedded, transparent PNG) ── */
@@ -422,11 +425,11 @@ const COLORS = {
 };
 
 /* ── Dark Mode Context ── */
-const DarkModeContext = React.createContext({ dark: false, toggleDark: () => {} });
+const DarkModeContext = createContext({ dark: false, toggleDark: () => {} });
 
 /* ── Skeleton Loader Components ── */
 function SkeletonPulse({ width = "100%", height = 16, radius = 8, style = {} }) {
-  const { dark } = React.useContext(DarkModeContext);
+  const { dark } = useContext(DarkModeContext);
   return React.createElement("div", {
     style: {
       width, height,
@@ -442,7 +445,7 @@ function SkeletonPulse({ width = "100%", height = 16, radius = 8, style = {} }) 
 }
 
 function SkeletonVisitCard() {
-  const { dark } = React.useContext(DarkModeContext);
+  const { dark } = useContext(DarkModeContext);
   return React.createElement("div", {
     style: {
       display: "flex", alignItems: "center", gap: 12,
@@ -463,7 +466,7 @@ function SkeletonVisitCard() {
 }
 
 function SkeletonStatCard() {
-  const { dark } = React.useContext(DarkModeContext);
+  const { dark } = useContext(DarkModeContext);
   return React.createElement("div", {
     style: {
       padding: "20px 18px", borderRadius: 14,
@@ -491,7 +494,7 @@ function SkeletonDashboard() {
 
 /* ── Empty State Illustrations ── */
 function IllustrationEmpty({ type = "visitors" }) {
-  const { dark } = React.useContext(DarkModeContext);
+  const { dark } = useContext(DarkModeContext);
   const c1 = dark ? "#1E3A5F" : "#E3EAF6";
   const c2 = dark ? "#2A4F7C" : "#C5D5EE";
   const acc = "#1E4FD9";
@@ -4087,7 +4090,7 @@ function Sidebar({
   isOpen = false,
   onClose
 }) {
-  const { dark, toggleDark } = React.useContext(DarkModeContext);
+  const { dark, toggleDark } = useContext(DarkModeContext);
   const items = [{
     id: "dashboard",
     label: "Dashboard",
@@ -4710,7 +4713,7 @@ function ReceptionistView({
   }))));
 }
 function EmptyState({ text, type = "visitors" }) {
-  const { dark } = React.useContext(DarkModeContext);
+  const { dark } = useContext(DarkModeContext);
   return React.createElement("div", {
     style: { textAlign: "center", padding: "32px 20px", color: dark ? "#7A9DC8" : COLORS.slate }
   },
@@ -6065,7 +6068,7 @@ function VisitorManagementSystem() {
   }]);
   const [syncing, setSyncing] = useState(true);
   const [dark, setDark] = useState(() => localStorage.getItem('vms_dark') === '1');
-  const toggleDark = React.useCallback(() => {
+  const toggleDark = useCallback(() => {
     setDark(d => {
       const next = !d;
       localStorage.setItem('vms_dark', next ? '1' : '0');
@@ -6073,7 +6076,7 @@ function VisitorManagementSystem() {
       return next;
     });
   }, []);
-  React.useEffect(() => {
+  useEffect(() => {
     document.body.classList.toggle('vms-dark', dark);
   }, []);
 
