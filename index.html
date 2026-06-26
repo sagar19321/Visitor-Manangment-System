@@ -475,6 +475,18 @@ function fmtTime(d) {
     minute: "2-digit"
   });
 }
+// Google Drive share links (.../file/d/ID/view) don't render directly in <img> tags.
+// Convert them to a direct-content URL so visitor photos actually display.
+function toDriveImageUrl(url) {
+  if (!url || typeof url !== "string") return url;
+  const fileMatch = url.match(/drive\.google\.com\/file\/d\/([^/]+)/);
+  if (fileMatch) return `https://drive.google.com/uc?export=view&id=${fileMatch[1]}`;
+  const idMatch = url.match(/[?&]id=([^&]+)/);
+  if (idMatch && url.includes("drive.google.com") && !url.includes("uc?export=view")) {
+    return `https://drive.google.com/uc?export=view&id=${idMatch[1]}`;
+  }
+  return url;
+}
 function fmtDate(d) {
   return d.toLocaleDateString("en-IN", {
     day: "2-digit",
@@ -729,16 +741,22 @@ function Avatar({
   size = 38,
   photo = null
 }) {
+  const [imgError, setImgError] = useState(false);
+  useEffect(() => {
+    setImgError(false);
+  }, [photo]);
   const initials = name.split(" ").map(p => p[0]).slice(0, 2).join("").toUpperCase();
   const hue = useMemo(() => {
     let h = 0;
     for (let i = 0; i < name.length; i++) h = (h + name.charCodeAt(i) * 7) % 360;
     return h;
   }, [name]);
-  if (photo) {
+  const src = toDriveImageUrl(photo);
+  if (src && !imgError) {
     return /*#__PURE__*/React.createElement("img", {
-      src: photo,
+      src: src,
       alt: name,
+      onError: () => setImgError(true),
       style: {
         width: size,
         height: size,
@@ -1840,7 +1858,7 @@ function printVisitorBadge(visit, host) {
     alert("Please allow pop-ups to print the badge.");
     return;
   }
-  const photoHtml = visit.photo ? `<img src="${visit.photo}" style="width:96px;height:96px;border-radius:50%;object-fit:cover;border:3px solid #1E4FD9;" />` : `<div style="width:96px;height:96px;border-radius:50%;background:#E3E8F2;display:flex;align-items:center;justify-content:center;font-size:34px;font-weight:800;color:#0B1E3D;">${(visit.name || "?").trim().charAt(0).toUpperCase()}</div>`;
+  const photoHtml = visit.photo ? `<img src="${toDriveImageUrl(visit.photo)}" style="width:96px;height:96px;border-radius:50%;object-fit:cover;border:3px solid #1E4FD9;" />` : `<div style="width:96px;height:96px;border-radius:50%;background:#E3E8F2;display:flex;align-items:center;justify-content:center;font-size:34px;font-weight:800;color:#0B1E3D;">${(visit.name || "?").trim().charAt(0).toUpperCase()}</div>`;
   win.document.write(`
     <!DOCTYPE html><html><head><title>Visitor Badge — ${visit.name}</title>
     <meta charset="UTF-8" />
@@ -4272,7 +4290,8 @@ function ReceptionistRow({
     }
   }, /*#__PURE__*/React.createElement(Avatar, {
     name: visit.name,
-    size: 48
+    size: 48,
+    photo: visit.photo
   }), /*#__PURE__*/React.createElement("div", {
     style: {
       flex: 1,
