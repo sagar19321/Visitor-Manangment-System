@@ -207,10 +207,7 @@ const {
   useState,
   useMemo,
   useEffect,
-  useRef,
-  useCallback,
-  useContext,
-  createContext
+  useRef
 } = React;
 
 /* ── Company Logo (embedded, transparent PNG) ── */
@@ -411,114 +408,6 @@ const COLORS = {
   success: "#1F9D6D",
   danger: "#D64545"
 };
-
-/* ── Dark Mode Context ── */
-const DarkModeContext = createContext({ dark: false, toggleDark: () => {} });
-
-/* ── Skeleton Loader Components ── */
-function SkeletonPulse({ width = "100%", height = 16, radius = 8, style = {} }) {
-  const { dark } = useContext(DarkModeContext);
-  return React.createElement("div", {
-    style: {
-      width, height,
-      borderRadius: radius,
-      background: dark
-        ? "linear-gradient(90deg, #1e2d45 25%, #263650 50%, #1e2d45 75%)"
-        : "linear-gradient(90deg, #e8edf5 25%, #f4f7fc 50%, #e8edf5 75%)",
-      backgroundSize: "200% 100%",
-      animation: "vms-shimmer 1.4s infinite linear",
-      ...style
-    }
-  });
-}
-
-function SkeletonVisitCard() {
-  const { dark } = useContext(DarkModeContext);
-  return React.createElement("div", {
-    style: {
-      display: "flex", alignItems: "center", gap: 12,
-      padding: "14px 16px",
-      borderRadius: 12,
-      background: dark ? "#112240" : "#fff",
-      border: dark ? "1px solid #1e3a5f" : "1px solid #EEF1F7",
-      marginBottom: 8
-    }
-  },
-    React.createElement(SkeletonPulse, { width: 40, height: 40, radius: 20 }),
-    React.createElement("div", { style: { flex: 1, display: "flex", flexDirection: "column", gap: 8 } },
-      React.createElement(SkeletonPulse, { width: "55%", height: 14 }),
-      React.createElement(SkeletonPulse, { width: "35%", height: 11 })
-    ),
-    React.createElement(SkeletonPulse, { width: 60, height: 26, radius: 20 })
-  );
-}
-
-function SkeletonStatCard() {
-  const { dark } = useContext(DarkModeContext);
-  return React.createElement("div", {
-    style: {
-      padding: "20px 18px", borderRadius: 14,
-      background: dark ? "#112240" : "#fff",
-      border: dark ? "1px solid #1e3a5f" : "1px solid #EEF1F7",
-      display: "flex", flexDirection: "column", gap: 12
-    }
-  },
-    React.createElement(SkeletonPulse, { width: 36, height: 36, radius: 10 }),
-    React.createElement(SkeletonPulse, { width: "60%", height: 28 }),
-    React.createElement(SkeletonPulse, { width: "80%", height: 13 })
-  );
-}
-
-function SkeletonDashboard() {
-  return React.createElement("div", { style: { padding: "0 0 24px" } },
-    React.createElement("div", {
-      style: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px,1fr))", gap: 14, marginBottom: 24 }
-    }, [0,1,2,3].map(i => React.createElement(SkeletonStatCard, { key: i }))),
-    React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 0 } },
-      [0,1,2,3,4].map(i => React.createElement(SkeletonVisitCard, { key: i }))
-    )
-  );
-}
-
-/* ── Empty State Illustrations ── */
-function IllustrationEmpty({ type = "visitors" }) {
-  const { dark } = useContext(DarkModeContext);
-  const c1 = dark ? "#1E3A5F" : "#E3EAF6";
-  const c2 = dark ? "#2A4F7C" : "#C5D5EE";
-  const acc = "#1E4FD9";
-  if (type === "visitors") return React.createElement("svg", { viewBox: "0 0 200 140", fill: "none", style: { width: 140, height: 100, margin: "0 auto 12px", display: "block" } },
-    React.createElement("ellipse", { cx: 100, cy: 125, rx: 70, ry: 10, fill: c1 }),
-    React.createElement("rect", { x: 30, y: 50, width: 140, height: 75, rx: 12, fill: c1 }),
-    React.createElement("rect", { x: 44, y: 64, width: 80, height: 10, rx: 5, fill: c2 }),
-    React.createElement("rect", { x: 44, y: 82, width: 55, height: 8, rx: 4, fill: c2 }),
-    React.createElement("rect", { x: 44, y: 98, width: 68, height: 8, rx: 4, fill: c2 }),
-    React.createElement("circle", { cx: 155, cy: 64, r: 18, fill: acc, opacity: 0.15 }),
-    React.createElement("circle", { cx: 155, cy: 64, r: 10, fill: acc, opacity: 0.4 }),
-    React.createElement("path", { d: "M149 64l4 4 8-8", stroke: "#fff", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round" }),
-    React.createElement("circle", { cx: 100, cy: 28, r: 18, fill: c1 }),
-    React.createElement("circle", { cx: 100, cy: 22, r: 8, fill: c2 }),
-    React.createElement("path", { d: "M82 46c0-9.9 8.1-18 18-18s18 8.1 18 18", fill: c2 })
-  );
-  if (type === "blacklist") return React.createElement("svg", { viewBox: "0 0 200 140", fill: "none", style: { width: 140, height: 100, margin: "0 auto 12px", display: "block" } },
-    React.createElement("ellipse", { cx: 100, cy: 125, rx: 70, ry: 10, fill: c1 }),
-    React.createElement("circle", { cx: 100, cy: 65, r: 48, fill: c1 }),
-    React.createElement("circle", { cx: 100, cy: 65, r: 35, fill: c2 }),
-    React.createElement("path", { d: "M76 65h48M100 41v48", stroke: dark ? "#4A90D9" : "#1E4FD9", strokeWidth: 3, strokeLinecap: "round" }),
-    React.createElement("circle", { cx: 100, cy: 65, r: 35, stroke: dark ? "#4A90D9" : "#1E4FD9", strokeWidth: 2.5, strokeDasharray: "6 4" })
-  );
-  if (type === "history") return React.createElement("svg", { viewBox: "0 0 200 140", fill: "none", style: { width: 140, height: 100, margin: "0 auto 12px", display: "block" } },
-    React.createElement("ellipse", { cx: 100, cy: 125, rx: 70, ry: 10, fill: c1 }),
-    React.createElement("rect", { x: 45, y: 30, width: 110, height: 90, rx: 10, fill: c1 }),
-    React.createElement("rect", { x: 38, y: 24, width: 110, height: 90, rx: 10, fill: c2 }),
-    React.createElement("rect", { x: 31, y: 18, width: 110, height: 90, rx: 10, fill: dark ? "#1a3a5c" : "#EEF3FB" }),
-    React.createElement("rect", { x: 48, y: 36, width: 60, height: 8, rx: 4, fill: c1 }),
-    React.createElement("rect", { x: 48, y: 52, width: 76, height: 7, rx: 3.5, fill: c1 }),
-    React.createElement("rect", { x: 48, y: 67, width: 50, height: 7, rx: 3.5, fill: c1 }),
-    React.createElement("circle", { cx: 120, cy: 88, r: 16, fill: acc, opacity: 0.18 }),
-    React.createElement("path", { d: "M120 78v10l6 4", stroke: acc, strokeWidth: 2.2, strokeLinecap: "round" })
-  );
-  return null;
-}
 const VISIT_TYPES = [{
   id: "driver",
   label: "Driver",
@@ -1967,17 +1856,6 @@ function printVisitorBadge(visit, host) {
       .badge-row .val { color:#0B1E3D; font-weight:700; text-align:right; }
       .badge-footer { background:#F4F7FC; text-align:center; font-size:10px; color:#5B6B8C; padding:8px; }
       @media print { body { padding:0; } }
-
-      /* Shimmer Animation */
-      @keyframes vms-shimmer {
-        0%   { background-position: 200% 0; }
-        100% { background-position: -200% 0; }
-      }
-      /* Dark Mode */
-      body.vms-dark {
-        background: #071527 !important;
-        color: #C8D8F0 !important;
-      }
     </style>
     </head><body>
       <div class="badge">
@@ -2211,7 +2089,7 @@ function HostDetailModal({
       marginBottom: 10
     }
   }, "Visit History"), sorted.length === 0 ? /*#__PURE__*/React.createElement(EmptyState, {
-    type: "history", text: "No visits recorded for this host yet."
+    text: "No visits recorded for this host yet."
   }) : sorted.map(v => {
     const t = VISIT_TYPES.find(x => x.id === v.type);
     return /*#__PURE__*/React.createElement("div", {
@@ -4089,7 +3967,6 @@ function Sidebar({
   isOpen = false,
   onClose
 }) {
-  const { dark, toggleDark } = useContext(DarkModeContext);
   const items = [{
     id: "dashboard",
     label: "Dashboard",
@@ -4282,26 +4159,7 @@ function Sidebar({
   }, /*#__PURE__*/React.createElement(Icon, {
     name: "LogOut",
     size: 16
-  }), " Sign out")),
-  // Dark Mode Toggle
-  React.createElement("button", {
-    onClick: toggleDark,
-    title: dark ? "Switch to Light Mode" : "Switch to Dark Mode",
-    style: {
-      display: "flex", alignItems: "center", gap: 9,
-      width: "100%", marginTop: 8,
-      padding: "10px 14px",
-      borderRadius: 10, border: "none",
-      background: dark ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.06)",
-      color: dark ? "#7EC8E3" : "rgba(255,255,255,0.6)",
-      fontWeight: 600, fontSize: "0.84rem", cursor: "pointer",
-      transition: "background 0.2s"
-    }
-  },
-    React.createElement("span", { style: { fontSize: 16 } }, dark ? "☀️" : "🌙"),
-    dark ? "Light Mode" : "Dark Mode"
-  )
-  ));
+  }), " Sign out"))));
 }
 function VisitRow({
   visit,
@@ -4654,7 +4512,7 @@ function ReceptionistView({
       color: COLORS.navy,
       fontSize: "1.1rem"
     }
-  }, "Currently Inside (", activeVisitors.length, ")")), /*#__PURE__*/React.createElement("div", {
+  }, "Currently Inside (", activeVisitors.length, ")")), activeVisitors.length > 3 && /*#__PURE__*/React.createElement("div", {
     style: {
       position: "relative",
       marginBottom: 16
@@ -4670,13 +4528,9 @@ function ReceptionistView({
     name: "Search",
     size: 17
   })), /*#__PURE__*/React.createElement("input", {
-    type: "text",
     placeholder: "Search by name or phone...",
     value: search,
     onChange: e => setSearch(e.target.value),
-    onKeyDown: e => { e.stopPropagation(); if (e.key === "Enter") e.preventDefault(); },
-    onKeyUp: e => { e.stopPropagation(); },
-    autoComplete: "off",
     style: {
       ...inputStyle,
       paddingLeft: 40,
@@ -4711,14 +4565,28 @@ function ReceptionistView({
     onCheckout: onCheckout
   }))));
 }
-function EmptyState({ text, type = "visitors" }) {
-  const { dark } = useContext(DarkModeContext);
-  return React.createElement("div", {
-    style: { textAlign: "center", padding: "32px 20px", color: dark ? "#7A9DC8" : COLORS.slate }
-  },
-    React.createElement(IllustrationEmpty, { type }),
-    React.createElement("div", { style: { fontSize: "0.86rem", fontWeight: 600 } }, text)
-  );
+function EmptyState({
+  text
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: "center",
+      padding: "40px 20px",
+      color: COLORS.slate
+    }
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "Users",
+    size: 32,
+    style: {
+      opacity: 0.3,
+      marginBottom: 10
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: "0.86rem",
+      fontWeight: 600
+    }
+  }, text));
 }
 function DashStatCard({
   label,
@@ -6066,18 +5934,6 @@ function VisitorManagementSystem() {
     date: new Date(Date.now() - 12 * 86400000)
   }]);
   const [syncing, setSyncing] = useState(true);
-  const [dark, setDark] = useState(() => localStorage.getItem('vms_dark') === '1');
-  const toggleDark = useCallback(() => {
-    setDark(d => {
-      const next = !d;
-      localStorage.setItem('vms_dark', next ? '1' : '0');
-      document.body.classList.toggle('vms-dark', next);
-      return next;
-    });
-  }, []);
-  useEffect(() => {
-    document.body.classList.toggle('vms-dark', dark);
-  }, []);
 
   // Load real data from Google Sheet on first load
   useEffect(() => {
@@ -6167,53 +6023,15 @@ function VisitorManagementSystem() {
       badge: "VM-" + Math.floor(1000 + Math.random() * 9000),
       blacklisted: false
     };
-    // Show visitor immediately with base64 photo in local state
     setVisits(v => [newVisit, ...v]);
     setShowCheckIn(false);
-
-    if (form.photo && form.photo.startsWith("data:")) {
-      // Upload photo to Drive, then save visit with Drive URL
-      apiPost("uploadPhoto", {
-        base64: form.photo,
-        fileName: "visitor_" + ptId + "_" + Date.now() + ".jpg"
-      }).then(res => {
-        const photoUrl = (res && res.url) ? res.url : null;
-        // Update local state with Drive URL so both admin & reception see photo
-        if (photoUrl) {
-          setVisits(vs => vs.map(v => v.id === ptId ? { ...v, photo: photoUrl } : v));
-        }
-        // Save visit to Sheet with Drive photo URL
-        apiPost("addVisit", {
-          visit: {
-            ...newVisit,
-            photo: photoUrl || "",
-            checkIn: toISO_IST(newVisit.checkIn),
-            checkOut: ""
-          }
-        });
-      }).catch(() => {
-        // Drive upload failed - save visit without photo
-        setVisits(vs => vs.map(v => v.id === ptId ? { ...v, photo: null } : v));
-        apiPost("addVisit", {
-          visit: {
-            ...newVisit,
-            photo: "",
-            checkIn: toISO_IST(newVisit.checkIn),
-            checkOut: ""
-          }
-        });
-      });
-    } else {
-      // No photo - save visit directly
-      apiPost("addVisit", {
-        visit: {
-          ...newVisit,
-          photo: "",
-          checkIn: toISO_IST(newVisit.checkIn),
-          checkOut: ""
-        }
-      });
-    }
+    apiPost("addVisit", {
+      visit: {
+        ...newVisit,
+        checkIn: toISO_IST(newVisit.checkIn),
+        checkOut: ""
+      }
+    });
   }
   function handleCheckout(id) {
     const checkOutTime = new Date();
@@ -6275,61 +6093,25 @@ function VisitorManagementSystem() {
       return matchesSearch && matchesType;
     });
   }, [visits, search, typeFilter]);
-  // Show skeleton while loading from Sheet
-  if (syncing) {
-    return React.createElement(DarkModeContext.Provider, { value: { dark, toggleDark } },
-      React.createElement("div", {
-        style: {
-          minHeight: "100vh",
-          background: dark ? "#071527" : "#F4F7FC",
-          display: "flex", flexDirection: "column",
-          alignItems: "center", justifyContent: "center"
-        }
-      },
-        React.createElement("div", {
-          style: {
-            width: "100%", maxWidth: 480,
-            padding: "32px 24px"
-          }
-        },
-          React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 10, marginBottom: 28 } },
-            React.createElement(SkeletonPulse, { width: 42, height: 42, radius: 10 }),
-            React.createElement("div", { style: { flex: 1 } },
-              React.createElement(SkeletonPulse, { width: "55%", height: 18, style: { marginBottom: 8 } }),
-              React.createElement(SkeletonPulse, { width: "35%", height: 12 })
-            )
-          ),
-          React.createElement(SkeletonDashboard)
-        )
-      )
-    );
-  }
-
-  if (!role) return React.createElement(DarkModeContext.Provider, { value: { dark, toggleDark } },
-    React.createElement(LoginScreen, {
-      onLogin: r => {
-        sessionStorage.setItem('vms_role', r);
-        setRole(r);
-      }
-    })
-  );
+  if (!role) return /*#__PURE__*/React.createElement(LoginScreen, {
+    onLogin: r => {
+      sessionStorage.setItem('vms_role', r);
+      setRole(r);
+    }
+  });
   if (role === "receptionist") {
-    return React.createElement(DarkModeContext.Provider, { value: { dark, toggleDark } },
-      React.createElement(ReceptionistView, {
-        visits: visits,
-        blacklist: blacklist,
-        activeVisitors: activeVisitors,
-        onCheckIn: handleCheckIn,
-        onCheckout: handleCheckout,
-        onLogout: () => {
-          sessionStorage.removeItem('vms_role');
-          setRole(null);
-        },
-        hosts: hosts,
-        dark: dark,
-        toggleDark: toggleDark
-      })
-    );
+    return /*#__PURE__*/React.createElement(ReceptionistView, {
+      visits: visits,
+      blacklist: blacklist,
+      activeVisitors: activeVisitors,
+      onCheckIn: handleCheckIn,
+      onCheckout: handleCheckout,
+      onLogout: () => {
+        sessionStorage.removeItem('vms_role');
+        setRole(null);
+      },
+      hosts: hosts
+    });
   }
   if (showCheckIn) {
     return /*#__PURE__*/React.createElement(CheckInPage, {
@@ -6348,11 +6130,10 @@ function VisitorManagementSystem() {
     reports: "Reports & Analytics",
     "reception-access": "Reception Access"
   };
-  return React.createElement(DarkModeContext.Provider, { value: { dark, toggleDark } },
-    React.createElement("div", {
+  return /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
-      background: dark ? "#071527" : COLORS.ice,
+      background: COLORS.ice,
       ...(isMobile ? {
         minHeight: "100dvh"
       } : {
@@ -6725,7 +6506,7 @@ function VisitorManagementSystem() {
   }, "TYPE"), /*#__PURE__*/React.createElement("div", {
     className: "visit-col-host"
   }, "HOST"), /*#__PURE__*/React.createElement("div", null, "TIME"), /*#__PURE__*/React.createElement("div", null)), (active === "visitors" ? filteredVisits.filter(v => v.status === "checked-in") : filteredVisits).length === 0 ? /*#__PURE__*/React.createElement(EmptyState, {
-    type: "history", text: "No results found."
+    text: "No results found."
   }) : (active === "visitors" ? filteredVisits.filter(v => v.status === "checked-in") : filteredVisits).sort((a, b) => b.checkIn - a.checkIn).map(v => /*#__PURE__*/React.createElement(VisitRow, {
     key: v.id,
     visit: v,
@@ -6835,7 +6616,6 @@ function VisitorManagementSystem() {
       padding: 24
     }
   }, /*#__PURE__*/React.createElement(EmptyState, {
-    type: "blacklist",
     text: "The blacklist is empty."
   })) : blacklist.map((b, i) => /*#__PURE__*/React.createElement("div", {
     key: b.phone + i,
@@ -7074,7 +6854,7 @@ function VisitorManagementSystem() {
     host: selectedHost,
     visits: visits.filter(v => v.hostId === selectedHost.id),
     onClose: () => setSelectedHost(null)
-  })));
+  }));
 }
 class ErrorBoundary extends React.Component {
   constructor(props) {
