@@ -294,7 +294,8 @@ const ICON_PATHS = {
   AlertCircle: ["M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20", "M12 8v4", "M12 16h.01"],
   VideoOff: ["M10.66 6H14a2 2 0 0 1 2 2v2.5l5.248-3.062A.5.5 0 0 1 22 7.87v8.196", "M16 16a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2", "M2 2l20 20"],
   Car: ["M14 16.5H9m10 0h1.5a1 1 0 0 0 1-1v-3.7a1 1 0 0 0-.4-.8L19 9l-1.5-4.5A2 2 0 0 0 15.6 3H8.4a2 2 0 0 0-1.9 1.5L5 9l-2.1 1.9a1 1 0 0 0-.4.8V15.5a1 1 0 0 0 1 1H5", "M7 16.5a2 2 0 1 0 4 0 2 2 0 1 0-4 0", "M14 16.5a2 2 0 1 0 4 0 2 2 0 1 0-4 0", "M2 11h17"],
-  CreditCard: ["M2 6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2z", "M2 10h20", "M6 15h2"]
+  CreditCard: ["M2 6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2z", "M2 10h20", "M6 15h2"],
+  Pencil: ["M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7", "M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"]
 };
 function Icon({
   name,
@@ -717,6 +718,24 @@ function StatCard({
     size: 13
   }), Math.abs(delta), "% vs yesterday"));
 }
+/* ---------- Google Drive URL → embeddable thumbnail ---------- */
+function convertGoogleDriveUrl(url) {
+  if (!url) return null;
+  // Already a data URI or non-Drive URL → pass through
+  if (url.startsWith("data:") || !url.includes("drive.google.com")) return url;
+  // Extract file ID from various Drive link formats:
+  // https://drive.google.com/file/d/FILE_ID/view?...
+  let match = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+  if (match) return `https://drive.google.com/thumbnail?id=${match[1]}&sz=s400`;
+  // https://drive.google.com/open?id=FILE_ID
+  match = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  if (match) return `https://drive.google.com/thumbnail?id=${match[1]}&sz=s400`;
+  // https://drive.google.com/uc?export=view&id=FILE_ID
+  match = url.match(/\/uc\?.*id=([a-zA-Z0-9_-]+)/);
+  if (match) return `https://drive.google.com/thumbnail?id=${match[1]}&sz=s400`;
+  return url;
+}
+
 function Avatar({
   name,
   size = 38,
@@ -728,9 +747,10 @@ function Avatar({
     for (let i = 0; i < name.length; i++) h = (h + name.charCodeAt(i) * 7) % 360;
     return h;
   }, [name]);
-  if (photo) {
+  const photoSrc = convertGoogleDriveUrl(photo);
+  if (photoSrc) {
     return /*#__PURE__*/React.createElement("img", {
-      src: photo,
+      src: photoSrc,
       alt: name,
       style: {
         width: size,
@@ -738,7 +758,8 @@ function Avatar({
         borderRadius: "50%",
         flexShrink: 0,
         objectFit: "cover"
-      }
+      },
+      onError: function(e) { e.target.style.display='none'; e.target.nextSibling && (e.target.nextSibling.style.display='flex'); }
     });
   }
   return /*#__PURE__*/React.createElement("div", {
@@ -1833,7 +1854,8 @@ function printVisitorBadge(visit, host) {
     alert("Please allow pop-ups to print the badge.");
     return;
   }
-  const photoHtml = visit.photo ? `<img src="${visit.photo}" style="width:96px;height:96px;border-radius:50%;object-fit:cover;border:3px solid #1E4FD9;" />` : `<div style="width:96px;height:96px;border-radius:50%;background:#E3E8F2;display:flex;align-items:center;justify-content:center;font-size:34px;font-weight:800;color:#0B1E3D;">${(visit.name || "?").trim().charAt(0).toUpperCase()}</div>`;
+  const photoSrcBadge = convertGoogleDriveUrl(visit.photo);
+  const photoHtml = photoSrcBadge ? `<img src="${photoSrcBadge}" style="width:96px;height:96px;border-radius:50%;object-fit:cover;border:3px solid #1E4FD9;" />` : `<div style="width:96px;height:96px;border-radius:50%;background:#E3E8F2;display:flex;align-items:center;justify-content:center;font-size:34px;font-weight:800;color:#0B1E3D;">${(visit.name || "?").trim().charAt(0).toUpperCase()}</div>`;
   win.document.write(`
     <!DOCTYPE html><html><head><title>Visitor Badge — ${visit.name}</title>
     <meta charset="UTF-8" />
@@ -2324,6 +2346,77 @@ function AddHostModal({
     name: "UserPlus",
     size: 16
   }), " Add Host")));
+}
+
+/* ── EditHostModal ── */
+function EditHostModal({
+  host,
+  onClose,
+  onSubmit
+}) {
+  const rawPhone = (host.phone || "").replace(/\D/g, "").replace(/^91/, "").slice(0, 10);
+  const [name, setName] = useState(host.name || "");
+  const [dept, setDept] = useState(host.dept || "");
+  const [role, setRole] = useState(host.role || "");
+  const [phone, setPhone] = useState(rawPhone);
+  const [error, setError] = useState("");
+  function submit() {
+    if (!name.trim()) { setError("Please enter the full name."); return; }
+    if (!dept) { setError("Please select a department."); return; }
+    if (!role) { setError("Please select a role / designation."); return; }
+    if (!phone.trim() || phone.length !== 10) { setError("Phone number must be exactly 10 digits."); return; }
+    onSubmit({ ...host, name: name.trim(), dept, role, phone: "+91 " + phone });
+  }
+  return /*#__PURE__*/React.createElement(Modal, {
+    title: "Edit Host",
+    subtitle: "Update host details",
+    onClose: onClose,
+    width: 480
+  }, /*#__PURE__*/React.createElement(TextField, {
+    label: "Full Name", required: true,
+    placeholder: "e.g. Rohan Kale",
+    value: name,
+    onChange: e => setName(e.target.value.replace(/[^a-zA-Z\s\u0900-\u097F]/g, ""))
+  }), /*#__PURE__*/React.createElement(SelectField, {
+    label: "Department", required: true,
+    value: dept, onChange: e => setDept(e.target.value)
+  }, /*#__PURE__*/React.createElement("option", { value: "" }, "Select department"),
+    DEPARTMENTS.map(d => /*#__PURE__*/React.createElement("option", { key: d, value: d }, d))),
+  /*#__PURE__*/React.createElement(SelectField, {
+    label: "Role / Designation", required: true,
+    value: role, onChange: e => setRole(e.target.value)
+  }, /*#__PURE__*/React.createElement("option", { value: "" }, "Select role"),
+    HOST_ROLES.map(r => /*#__PURE__*/React.createElement("option", { key: r, value: r }, r))),
+  /*#__PURE__*/React.createElement("div", { style: { marginBottom: 16 } },
+    /*#__PURE__*/React.createElement(FieldLabel, { required: true }, "Phone Number"),
+    /*#__PURE__*/React.createElement("div", { style: { position: "relative" } },
+      /*#__PURE__*/React.createElement("span", {
+        style: { position: "absolute", left: 13, top: "50%", transform: "translateY(-50%)", fontSize: "0.9rem", color: COLORS.slate, fontWeight: 600, pointerEvents: "none" }
+      }, "+91"),
+      /*#__PURE__*/React.createElement("input", {
+        value: phone, inputMode: "numeric", maxLength: 10,
+        onChange: e => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10)),
+        placeholder: "10-digit mobile number",
+        style: { ...inputStyle, paddingLeft: 42 }
+      })),
+    phone.length > 0 && phone.length < 10 && /*#__PURE__*/React.createElement("div", {
+      style: { fontSize: "0.74rem", color: COLORS.amber, fontWeight: 600, marginTop: 5 }
+    }, 10 - phone.length, " more digit", 10 - phone.length !== 1 ? "s" : "", " needed"),
+    phone.length === 10 && /*#__PURE__*/React.createElement("div", {
+      style: { fontSize: "0.74rem", color: COLORS.success, fontWeight: 600, marginTop: 5, display: "flex", alignItems: "center", gap: 4 }
+    }, /*#__PURE__*/React.createElement(Icon, { name: "CheckCircle2", size: 13 }), " Valid number")),
+  error && /*#__PURE__*/React.createElement("div", {
+    style: { color: COLORS.danger, fontSize: "0.82rem", fontWeight: 600, marginBottom: 12, background: "rgba(214,69,69,0.07)", padding: "9px 12px", borderRadius: 9, display: "flex", alignItems: "center", gap: 7 }
+  }, /*#__PURE__*/React.createElement(Icon, { name: "AlertCircle", size: 15 }), " ", error),
+  /*#__PURE__*/React.createElement("div", { style: { display: "flex", gap: 10, marginTop: 6 } },
+    /*#__PURE__*/React.createElement("button", {
+      onClick: onClose,
+      style: { flex: 1, padding: "12px", borderRadius: 10, border: "1.5px solid #E3E8F2", background: "#fff", color: COLORS.slate, fontWeight: 700, cursor: "pointer", fontSize: "0.88rem" }
+    }, "Cancel"),
+    /*#__PURE__*/React.createElement("button", {
+      onClick: submit,
+      style: { flex: 2, padding: "12px", borderRadius: 10, border: "none", background: COLORS.royal, color: "#fff", fontWeight: 700, cursor: "pointer", fontSize: "0.88rem", boxShadow: "0 8px 20px -6px rgba(30,79,217,0.5)", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }
+    }, /*#__PURE__*/React.createElement(Icon, { name: "CheckCircle2", size: 16 }), " Save Changes")));
 }
 
 /* ── Live clock for login ── */
@@ -5927,12 +6020,7 @@ function VisitorManagementSystem() {
   const [active, setActive] = useState("dashboard");
   const [visits, setVisits] = useState([]);
   const [hosts, setHosts] = useState(INITIAL_HOSTS);
-  const [blacklist, setBlacklist] = useState([{
-    phone: "+91 99887 66554",
-    name: "Deepak Rane",
-    reason: "Unauthorized entry attempt",
-    date: new Date(Date.now() - 12 * 86400000)
-  }]);
+  const [blacklist, setBlacklist] = useState([]);
   const [syncing, setSyncing] = useState(true);
 
   // Load real data from Google Sheet on first load
@@ -5966,6 +6054,7 @@ function VisitorManagementSystem() {
   }, []);
   const [showCheckIn, setShowCheckIn] = useState(false);
   const [showAddHost, setShowAddHost] = useState(false);
+  const [editingHost, setEditingHost] = useState(null);
   const [selectedVisit, setSelectedVisit] = useState(null);
   const [selectedHost, setSelectedHost] = useState(null);
   const [search, setSearch] = useState("");
@@ -6079,6 +6168,11 @@ function VisitorManagementSystem() {
     apiPost("addHost", {
       host: newHost
     });
+  }
+  function updateHost(updated) {
+    setHosts(hs => hs.map(h => h.id === updated.id ? updated : h));
+    apiPost("updateHost", { host: updated });
+    setEditingHost(null);
   }
   function removeHost(id) {
     setHosts(hs => hs.filter(h => h.id !== id));
@@ -6566,7 +6660,25 @@ function VisitorManagementSystem() {
         fontWeight: 600,
         marginTop: 2
       }
-    }, h.role)), /*#__PURE__*/React.createElement("button", {
+    }, h.role)), /*#__PURE__*/React.createElement("div", { style: { display: "flex", gap: 6, flexShrink: 0 } }, /*#__PURE__*/React.createElement("button", {
+      onClick: e => {
+        e.stopPropagation();
+        setEditingHost(h);
+      },
+      title: "Edit host",
+      style: {
+        border: "none",
+        background: "#EEF4FF",
+        borderRadius: 8,
+        padding: "6px 8px",
+        cursor: "pointer",
+        color: COLORS.royal,
+        flexShrink: 0
+      }
+    }, /*#__PURE__*/React.createElement(Icon, {
+      name: "Pencil",
+      size: 14
+    })), /*#__PURE__*/React.createElement("button", {
       onClick: e => {
         e.stopPropagation();
         removeHost(h.id);
@@ -6584,7 +6696,7 @@ function VisitorManagementSystem() {
     }, /*#__PURE__*/React.createElement(Icon, {
       name: "Trash2",
       size: 14
-    }))), /*#__PURE__*/React.createElement("div", {
+    })))), /*#__PURE__*/React.createElement("div", {
       style: {
         fontSize: "0.78rem",
         color: COLORS.slate,
@@ -6596,7 +6708,7 @@ function VisitorManagementSystem() {
     }, /*#__PURE__*/React.createElement(Icon, {
       name: "Phone",
       size: 12
-    }), " ", h.phone), /*#__PURE__*/React.createElement("div", {
+    }), " ", (h.phone && !h.phone.includes("#ERROR")) ? h.phone : "—"), /*#__PURE__*/React.createElement("div", {
       style: {
         fontSize: "0.78rem",
         color: COLORS.royal,
@@ -6850,6 +6962,10 @@ function VisitorManagementSystem() {
       addHost(host);
       setShowAddHost(false);
     }
+  }), editingHost && /*#__PURE__*/React.createElement(EditHostModal, {
+    host: editingHost,
+    onClose: () => setEditingHost(null),
+    onSubmit: updateHost
   }), selectedHost && /*#__PURE__*/React.createElement(HostDetailModal, {
     host: selectedHost,
     visits: visits.filter(v => v.hostId === selectedHost.id),
