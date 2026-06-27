@@ -721,11 +721,17 @@ function StatCard({
 /* ---------- Host phone formatter: safe display, strips #ERROR ---------- */
 function formatHostPhone(raw) {
   if (!raw) return "—";
-  const s = String(raw);
-  if (s.includes("#ERROR") || s.includes("#REF") || s.trim() === "") return "—";
-  const digits = s.replace(/\D/g, "").replace(/^91/, "").slice(-10);
-  if (digits.length === 10) return "+91 " + digits;
-  return s.trim() || "—";
+  const s = String(raw).trim();
+  if (s.includes("#ERROR") || s.includes("#REF") || s === "") return "—";
+  const digits = s.replace(/\D/g, "");
+  // 12-digit: 91XXXXXXXXXX → take last 10
+  if (digits.length === 12 && digits.startsWith("91")) return digits.slice(2);
+  // 11-digit: 0XXXXXXXXXX → take last 10
+  if (digits.length === 11 && digits.startsWith("0")) return digits.slice(1);
+  // 10-digit: perfect
+  if (digits.length === 10) return digits;
+  // fallback: show raw
+  return s || "—";
 }
 
 /* ---------- Google Drive URL → embeddable thumbnail ---------- */
@@ -2256,22 +2262,7 @@ function AddHostModal({
     }
   }, /*#__PURE__*/React.createElement(FieldLabel, {
     required: true
-  }, "Phone Number"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: "relative"
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      position: "absolute",
-      left: 13,
-      top: "50%",
-      transform: "translateY(-50%)",
-      fontSize: "0.9rem",
-      color: COLORS.slate,
-      fontWeight: 600,
-      pointerEvents: "none"
-    }
-  }, "+91"), /*#__PURE__*/React.createElement("input", {
+  }, "Phone Number"), /*#__PURE__*/React.createElement("input", {
     value: phone,
     inputMode: "numeric",
     maxLength: 10,
@@ -2280,10 +2271,9 @@ function AddHostModal({
     },
     placeholder: "10-digit mobile number",
     style: {
-      ...inputStyle,
-      paddingLeft: 42
+      ...inputStyle
     }
-  })), phone.length > 0 && phone.length < 10 && /*#__PURE__*/React.createElement("div", {
+  }), phone.length > 0 && phone.length < 10 && /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: "0.74rem",
       color: COLORS.amber,
@@ -2368,7 +2358,8 @@ function EditHostModal({
   onClose,
   onSubmit
 }) {
-  const rawPhone = (host.phone || "").replace(/\D/g, "").replace(/^91/, "").slice(0, 10);
+  const allDigitsEdit = (host.phone || "").replace(/\D/g, "");
+  const rawPhone = allDigitsEdit.length === 12 && allDigitsEdit.startsWith("91") ? allDigitsEdit.slice(2) : allDigitsEdit.slice(-10) || "";
   const [name, setName] = useState(host.name || "");
   const [dept, setDept] = useState(host.dept || "");
   const [role, setRole] = useState(host.role || "");
@@ -2403,16 +2394,12 @@ function EditHostModal({
     HOST_ROLES.map(r => /*#__PURE__*/React.createElement("option", { key: r, value: r }, r))),
   /*#__PURE__*/React.createElement("div", { style: { marginBottom: 16 } },
     /*#__PURE__*/React.createElement(FieldLabel, { required: true }, "Phone Number"),
-    /*#__PURE__*/React.createElement("div", { style: { position: "relative" } },
-      /*#__PURE__*/React.createElement("span", {
-        style: { position: "absolute", left: 13, top: "50%", transform: "translateY(-50%)", fontSize: "0.9rem", color: COLORS.slate, fontWeight: 600, pointerEvents: "none" }
-      }, "+91"),
-      /*#__PURE__*/React.createElement("input", {
-        value: phone, inputMode: "numeric", maxLength: 10,
-        onChange: e => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10)),
-        placeholder: "10-digit mobile number",
-        style: { ...inputStyle, paddingLeft: 42 }
-      })),
+    /*#__PURE__*/React.createElement("input", {
+      value: phone, inputMode: "numeric", maxLength: 10,
+      onChange: e => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10)),
+      placeholder: "10-digit mobile number",
+      style: { ...inputStyle }
+    }),
     phone.length > 0 && phone.length < 10 && /*#__PURE__*/React.createElement("div", {
       style: { fontSize: "0.74rem", color: COLORS.amber, fontWeight: 600, marginTop: 5 }
     }, 10 - phone.length, " more digit", 10 - phone.length !== 1 ? "s" : "", " needed"),
@@ -6033,7 +6020,7 @@ function VisitorManagementSystem() {
   const [role, setRole] = useState(() => sessionStorage.getItem('vms_role') || null);
   const [active, setActive] = useState("dashboard");
   const [visits, setVisits] = useState([]);
-  const [hosts, setHosts] = useState(INITIAL_HOSTS);
+  const [hosts, setHosts] = useState([]);
   const [blacklist, setBlacklist] = useState([]);
   const [syncing, setSyncing] = useState(true);
 
