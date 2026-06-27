@@ -435,7 +435,7 @@ const VISIT_TYPES = [{
   icon: "Users",
   color: COLORS.slate
 }];
-const DEPARTMENTS = ["Operation", "Human Resource", "Car Rental", "PTrack (Technology)", "Billing", "Finance & Accounts", "Booking & Sales", "Administration", "CEO", "Other"];
+const DEPARTMENTS = ["Operation", "Human Resource", "Car Rental", "PTrack (Technology)", "Billing", "Finance & Accounts", "Booking & Sales", "Administration", "CEO", "Technology Head", "GPS Dept", "Other"];
 const HOST_ROLES = ["Manager", "Team Lead", "Senior Executive", "Executive", "Receptionist", "Director", "Supervisor", "Accounts", "Other"];
 const INITIAL_HOSTS = [{
   id: "h1",
@@ -718,6 +718,16 @@ function StatCard({
     size: 13
   }), Math.abs(delta), "% vs yesterday"));
 }
+/* ---------- Host phone formatter: safe display, strips #ERROR ---------- */
+function formatHostPhone(raw) {
+  if (!raw) return "—";
+  const s = String(raw);
+  if (s.includes("#ERROR") || s.includes("#REF") || s.trim() === "") return "—";
+  const digits = s.replace(/\D/g, "").replace(/^91/, "").slice(-10);
+  if (digits.length === 10) return "+91 " + digits;
+  return s.trim() || "—";
+}
+
 /* ---------- Google Drive URL → embeddable thumbnail ---------- */
 function convertGoogleDriveUrl(url) {
   if (!url) return null;
@@ -1664,15 +1674,7 @@ function CheckInPage({
   }, "Select purpose"), VENDOR_PURPOSE_OPTIONS.map(opt => /*#__PURE__*/React.createElement("option", {
     key: opt,
     value: opt
-  }, opt))) : /*#__PURE__*/React.createElement(TextField, {
-    label: "Company / Organisation",
-    placeholder: "Company name",
-    value: form.company,
-    onChange: e => setForm({
-      ...form,
-      company: e.target.value
-    })
-  }), form.type !== "driver" && form.type !== "vendor" && /*#__PURE__*/React.createElement("div", {
+  }, opt))) : null, form.type !== "driver" && form.type !== "vendor" && /*#__PURE__*/React.createElement("div", {
     style: {
       marginBottom: 16
     }
@@ -1712,7 +1714,7 @@ function CheckInPage({
     label: "Department",
     value: hosts.find(h => h.id === form.hostId)?.dept || "",
     disabled: true
-  })), /*#__PURE__*/React.createElement("div", {
+  })), form.type === "driver" ? /*#__PURE__*/React.createElement("div", {
     style: {
       display: "grid",
       gridTemplateColumns: "1fr 1fr",
@@ -1738,7 +1740,19 @@ function CheckInPage({
   }, "Select duration"), DURATION_OPTIONS.map(d => /*#__PURE__*/React.createElement("option", {
     key: d,
     value: d
-  }, d)))), /*#__PURE__*/React.createElement("div", {
+  }, d)))) : /*#__PURE__*/React.createElement(SelectField, {
+    label: "Expected Duration",
+    value: form.duration,
+    onChange: e => setForm({
+      ...form,
+      duration: e.target.value
+    })
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "Select duration"), DURATION_OPTIONS.map(d => /*#__PURE__*/React.createElement("option", {
+    key: d,
+    value: d
+  }, d))), /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 4
     }
@@ -2098,7 +2112,7 @@ function HostDetailModal({
   }, /*#__PURE__*/React.createElement(DetailRow, {
     iconName: "Phone",
     label: "Phone",
-    value: host.phone
+    value: formatHostPhone(host.phone)
   }), /*#__PURE__*/React.createElement(DetailRow, {
     iconName: "Users",
     label: "Total Visits",
@@ -2202,7 +2216,7 @@ function AddHostModal({
       name: name.trim(),
       dept,
       role,
-      phone: "+91 " + phone
+      phone: phone
     });
   }
   return /*#__PURE__*/React.createElement(Modal, {
@@ -2365,7 +2379,7 @@ function EditHostModal({
     if (!dept) { setError("Please select a department."); return; }
     if (!role) { setError("Please select a role / designation."); return; }
     if (!phone.trim() || phone.length !== 10) { setError("Phone number must be exactly 10 digits."); return; }
-    onSubmit({ ...host, name: name.trim(), dept, role, phone: "+91 " + phone });
+    onSubmit({ ...host, name: name.trim(), dept, role, phone: phone });
   }
   return /*#__PURE__*/React.createElement(Modal, {
     title: "Edit Host",
@@ -6708,7 +6722,7 @@ function VisitorManagementSystem() {
     }, /*#__PURE__*/React.createElement(Icon, {
       name: "Phone",
       size: 12
-    }), " ", (h.phone && !h.phone.includes("#ERROR")) ? h.phone : "—"), /*#__PURE__*/React.createElement("div", {
+    }), " ", formatHostPhone(h.phone)), /*#__PURE__*/React.createElement("div", {
       style: {
         fontSize: "0.78rem",
         color: COLORS.royal,
@@ -6804,11 +6818,25 @@ function VisitorManagementSystem() {
       color: COLORS.navy,
       marginBottom: 16
     }
-  }, "Weekly Footfall Trend"), ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Today"].map((d, i) => {
-    const val = [14, 18, 11, 22, 17, 6, todaysVisits.length][i];
-    const max = 22;
-    return /*#__PURE__*/React.createElement("div", {
-      key: d,
+  }, "Weekly Footfall Trend"), React.createElement(React.Fragment, null, (() => {
+    // Build Mon–Sat of current week + Today from real visits data
+    const now = new Date();
+    const dayIdx = now.getDay(); // 0=Sun,1=Mon,...,6=Sat
+    // Monday of this week
+    const monday = new Date(now);
+    monday.setDate(now.getDate() - (dayIdx === 0 ? 6 : dayIdx - 1));
+    monday.setHours(0, 0, 0, 0);
+    const weekLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const footfall = weekLabels.map((label, i) => {
+      const day = new Date(monday);
+      day.setDate(monday.getDate() + i);
+      const count = visits.filter(v => v.checkIn && v.checkIn.toDateString() === day.toDateString()).length;
+      return { label, count };
+    });
+    footfall.push({ label: "Today", count: todaysVisits.length });
+    const maxVal = Math.max(...footfall.map(d => d.count), 1);
+    return footfall.map(({ label, count }, i) => /*#__PURE__*/React.createElement("div", {
+      key: label,
       style: {
         display: "flex",
         alignItems: "center",
@@ -6822,7 +6850,7 @@ function VisitorManagementSystem() {
         color: COLORS.slate,
         fontWeight: 600
       }
-    }, d), /*#__PURE__*/React.createElement("div", {
+    }, label), /*#__PURE__*/React.createElement("div", {
       style: {
         flex: 1,
         height: 9,
@@ -6832,7 +6860,7 @@ function VisitorManagementSystem() {
       }
     }, /*#__PURE__*/React.createElement("div", {
       style: {
-        width: `${val / max * 100}%`,
+        width: `${count / maxVal * 100}%`,
         height: "100%",
         background: i === 6 ? COLORS.royal : COLORS.sky,
         borderRadius: 5
@@ -6845,8 +6873,8 @@ function VisitorManagementSystem() {
         color: COLORS.navy,
         textAlign: "right"
       }
-    }, val));
-  })), /*#__PURE__*/React.createElement("div", {
+    }, count)));
+  })())), /*#__PURE__*/React.createElement("div", {
     style: {
       background: "#fff",
       borderRadius: 16,
