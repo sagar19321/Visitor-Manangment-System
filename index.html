@@ -348,29 +348,69 @@ async function apiGet(type) {
     return null;
   }
 }
-async function apiPost(action, payload) {
-  try {
-    const res = await fetch(WEB_APP_URL, {
-      method: "POST",
-      redirect: "follow",
-      headers: {
-        "Content-Type": "text/plain"
-      },
-      body: JSON.stringify({
-        key: SHEETS_API_KEY,
-        action,
-        ...payload
-      })
-    });
-    const data = await res.json();
-    if (data.error) console.error("apiPost error:", data.error);
-    return data;
-  } catch (err) {
-    console.error("apiPost failed:", err);
-    return null;
+async function apiPost(action, payload, retries = 3) {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const res = await fetch(WEB_APP_URL, {
+        method: "POST",
+        redirect: "follow",
+        headers: {
+          "Content-Type": "text/plain"
+        },
+        body: JSON.stringify({
+          key: SHEETS_API_KEY,
+          action,
+          ...payload
+        })
+      });
+      const data = await res.json();
+      if (data.error) {
+        console.error("apiPost error:", data.error);
+        return data;
+      }
+      return data;
+    } catch (err) {
+      console.warn(`apiPost attempt ${attempt}/${retries} failed:`, err);
+      if (attempt < retries) await new Promise(r => setTimeout(r, 1000 * attempt));
+    }
   }
+  console.error("apiPost failed after all retries:", action);
+  return null;
 }
 function toDateOrNull(v) {
+/* ── Checkout localStorage persistence ──
+   Sheet update sometimes races with page refresh.
+   We persist checkouts locally so they survive refreshes
+   even if the Apps Script hasn't written to the Sheet yet. */
+const VMS_CO_KEY = "vms_checkouts_v1";
+function _getLocalCO() {
+  try { return JSON.parse(localStorage.getItem(VMS_CO_KEY) || "{}"); } catch { return {}; }
+}
+function persistLocalCheckout(id, isoStr) {
+  const co = _getLocalCO();
+  co[id] = isoStr;
+  try { localStorage.setItem(VMS_CO_KEY, JSON.stringify(co)); } catch {}
+}
+function confirmLocalCheckout(id) {
+  // Called when Sheet already shows checked-out → safe to remove local override
+  const co = _getLocalCO();
+  if (co[id]) { delete co[id]; try { localStorage.setItem(VMS_CO_KEY, JSON.stringify(co)); } catch {} }
+}
+function applyLocalCheckouts(visitsList) {
+  const co = _getLocalCO();
+  return visitsList.map(v => {
+    const isoOverride = co[v.id];
+    if (isoOverride) {
+      if (v.status === "checked-out") {
+        confirmLocalCheckout(v.id); // Sheet confirmed, clean up
+        return v;
+      }
+      return { ...v, status: "checked-out", checkOut: toDateOrNull(isoOverride) || new Date() };
+    }
+    return v;
+  });
+}
+
   if (!v) return null;
   // Handle "YYYY-MM-DD HH:MM:SS IST" format from Google Sheets
   if (typeof v === "string") {
@@ -6031,7 +6071,7 @@ function VisitorManagementSystem() {
       const all = await apiGet("");
       if (all) {
         if (Array.isArray(all.visits) && all.visits.length) {
-          setVisits(all.visits.map(v => {
+          const parsed = all.visits.map(v => {
             const parsedCheckIn = toDateOrNull(v.checkIn);
             if (!parsedCheckIn) return null;
             return {
@@ -6041,7 +6081,8 @@ function VisitorManagementSystem() {
               vip: v.vip === true || v.vip === "TRUE" || v.vip === "true",
               blacklisted: v.blacklisted === true || v.blacklisted === "TRUE" || v.blacklisted === "true"
             };
-          }).filter(Boolean));
+          }).filter(Boolean);
+          setVisits(applyLocalCheckouts(parsed));
         }
         if (Array.isArray(all.hosts) && all.hosts.length) setHosts(all.hosts);
         if (Array.isArray(all.blacklist) && all.blacklist.length) {
@@ -6049,6 +6090,15 @@ function VisitorManagementSystem() {
             ...b,
             date: toDateOrNull(b.date) || new Date()
           })));
+        }
+      }
+      // Retry any checkouts that failed to reach the Sheet in a previous session
+      const pending = _getLocalCO();
+      const pendingIds = Object.keys(pending);
+      if (pendingIds.length > 0) {
+        for (const pid of pendingIds) {
+          const result = await apiPost("checkoutVisit", { id: pid, checkOut: pending[pid] });
+          if (result && !result.error) confirmLocalCheckout(pid);
         }
       }
       setSyncing(false);
@@ -6124,17 +6174,25 @@ function VisitorManagementSystem() {
       }
     });
   }
-  function handleCheckout(id) {
+  async function handleCheckout(id) {
     const checkOutTime = new Date();
+    const checkOutISO = toISO_IST(checkOutTime);
+    // 1. Update UI immediately
     setVisits(vs => vs.map(v => v.id === id ? {
       ...v,
       status: "checked-out",
       checkOut: checkOutTime
     } : v));
-    apiPost("checkoutVisit", {
-      id,
-      checkOut: toISO_IST(checkOutTime)
-    });
+    // 2. Save to localStorage in case page refreshes before Sheet confirms
+    persistLocalCheckout(id, checkOutISO);
+    // 3. Send to Sheet with retry (up to 3 attempts)
+    const result = await apiPost("checkoutVisit", { id, checkOut: checkOutISO });
+    if (result && !result.error) {
+      // Sheet confirmed — remove localStorage override
+      confirmLocalCheckout(id);
+    }
+    // If result is null or has error, localStorage keeps the override alive
+    // and the pending checkout queue will retry on next page load
   }
   function handleBlacklist(visit) {
     if (blacklist.some(b => b.phone === visit.phone)) {
