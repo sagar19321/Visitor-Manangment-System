@@ -1426,7 +1426,7 @@ function CheckInPage({
   const [photo, setPhoto] = useState(null);
   const [resume, setResume] = useState(null);
   const [error, setError] = useState("");
-  const isBlacklisted = blacklist.some(b => b.phone.replace(/\D/g, "").slice(-10) === form.phone && form.phone.length === 10);
+  const isBlacklisted = blacklist.some(b => String(b.phone || "").replace(/\D/g, "").slice(-10) === form.phone && form.phone.length === 10);
   function submit() {
     if (!form.name.trim() || !form.phone.trim() || !form.purpose.trim() || !form.type) {
       setError("Please fill in full name, mobile number, visitor category, and purpose of visit.");
@@ -2358,7 +2358,7 @@ function EditHostModal({
   onClose,
   onSubmit
 }) {
-  const allDigitsEdit = (host.phone || "").replace(/\D/g, "");
+  const allDigitsEdit = String(host.phone || "").replace(/\D/g, "");
   const rawPhone = allDigitsEdit.length === 12 && allDigitsEdit.startsWith("91") ? allDigitsEdit.slice(2) : allDigitsEdit.slice(-10) || "";
   const [name, setName] = useState(host.name || "");
   const [dept, setDept] = useState(host.dept || "");
