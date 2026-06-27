@@ -4345,7 +4345,7 @@ function ReceptionistRow({
   host,
   onCheckout
 }) {
-  const t = VISIT_TYPES.find(x => x.id === visit.type);
+  const t = VISIT_TYPES.find(x => x.id === visit.type) || VISIT_TYPES[0];
   return /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
@@ -4456,7 +4456,7 @@ function ReceptionistView({
   const today = new Date();
   const visible = useMemo(() => {
     if (search.trim() === "") return activeVisitors;
-    return activeVisitors.filter(v => v.name.toLowerCase().includes(search.toLowerCase()) || v.phone.includes(search));
+    return activeVisitors.filter(v => (v.name || "").toLowerCase().includes(search.toLowerCase()) || String(v.phone || "").includes(search));
   }, [activeVisitors, search]);
   if (showCheckIn) {
     return /*#__PURE__*/React.createElement(CheckInPage, {
