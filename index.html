@@ -377,7 +377,6 @@ async function apiPost(action, payload, retries = 3) {
   console.error("apiPost failed after all retries:", action);
   return null;
 }
-function toDateOrNull(v) {
 /* ── Checkout localStorage persistence ──
    Sheet update sometimes races with page refresh.
    We persist checkouts locally so they survive refreshes
@@ -392,7 +391,6 @@ function persistLocalCheckout(id, isoStr) {
   try { localStorage.setItem(VMS_CO_KEY, JSON.stringify(co)); } catch {}
 }
 function confirmLocalCheckout(id) {
-  // Called when Sheet already shows checked-out → safe to remove local override
   const co = _getLocalCO();
   if (co[id]) { delete co[id]; try { localStorage.setItem(VMS_CO_KEY, JSON.stringify(co)); } catch {} }
 }
@@ -402,7 +400,7 @@ function applyLocalCheckouts(visitsList) {
     const isoOverride = co[v.id];
     if (isoOverride) {
       if (v.status === "checked-out") {
-        confirmLocalCheckout(v.id); // Sheet confirmed, clean up
+        confirmLocalCheckout(v.id);
         return v;
       }
       return { ...v, status: "checked-out", checkOut: toDateOrNull(isoOverride) || new Date() };
@@ -411,7 +409,7 @@ function applyLocalCheckouts(visitsList) {
   });
 }
 
-  if (!v) return null;
+function toDateOrNull(v) {
   // Handle "YYYY-MM-DD HH:MM:SS IST" format from Google Sheets
   if (typeof v === "string") {
     const istMatch = v.match(/^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})\s*IST$/);
