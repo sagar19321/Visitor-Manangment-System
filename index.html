@@ -76,6 +76,23 @@
     from { box-shadow: 0 0 0 0 rgba(30,79,217,0.4); }
     to   { box-shadow: 0 0 0 6px rgba(30,79,217,0); }
   }
+  /* ===== REPORT DASHBOARD CHART ANIMATIONS ===== */
+  @keyframes chartDotIn {
+    from { opacity: 0; transform: scale(0); }
+    to   { opacity: 1; transform: scale(1); }
+  }
+  @keyframes chartSliceIn {
+    from { opacity: 0; transform: scale(0.6); }
+    to   { opacity: 1; transform: scale(1); }
+  }
+  @keyframes chartBarIn {
+    from { transform: scaleY(0); }
+    to   { transform: scaleY(1); }
+  }
+  @keyframes chartTooltipIn {
+    from { opacity: 0; transform: translate(-50%, 2px); }
+    to   { opacity: 1; transform: translate(-50%, 0); }
+  }
 
   .login-orb1 { animation: floatOrb 7s ease-in-out infinite; }
   .login-orb2 { animation: floatOrb2 9s ease-in-out infinite; }
@@ -6085,6 +6102,133 @@ function ChangePasswordModal({
 function svgPt(x, y) { return `${x},${y}`; }
 
 /* Line/Area chart rendered as inline SVG */
+/* ── Animates an SVG <path> "drawing in" via stroke-dashoffset whenever
+   the path's own `d` string changes (used as the effect's dep key). ── */
+function useDrawPath(pathD) {
+  const ref = useRef(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    try {
+      const len = el.getTotalLength();
+      if (!len) return;
+      el.style.transition = "none";
+      el.style.strokeDasharray = `${len}`;
+      el.style.strokeDashoffset = `${len}`;
+      el.getBoundingClientRect(); // force reflow so the reset above is committed
+      requestAnimationFrame(() => {
+        el.style.transition = "stroke-dashoffset 0.7s cubic-bezier(0.4,0,0.2,1)";
+        el.style.strokeDashoffset = "0";
+      });
+    } catch (e) { /* ignore — getTotalLength can throw on a 0-length path */ }
+  }, [pathD]);
+  return ref;
+}
+
+/* ── Smoothly tweens a displayed number toward `target` whenever it changes. ── */
+function useCountUp(target, duration = 600) {
+  const [display, setDisplay] = useState(target);
+  const fromRef = useRef(target);
+  useEffect(() => {
+    const from = fromRef.current;
+    const diff = target - from;
+    if (diff === 0) { setDisplay(target); return; }
+    const t0 = performance.now();
+    let raf;
+    function tick(t) {
+      const p = Math.min((t - t0) / duration, 1);
+      const eased = 1 - Math.pow(1 - p, 3);
+      setDisplay(Math.round(from + diff * eased));
+      if (p < 1) raf = requestAnimationFrame(tick);
+      else fromRef.current = target;
+    }
+    raf = requestAnimationFrame(tick);
+    return () => raf && cancelAnimationFrame(raf);
+  }, [target]);
+  return display;
+}
+
+/* ── Small floating tooltip box, positioned by the caller via style.left/top. ── */
+function ChartTooltip({ x, y, children }) {
+  return React.createElement("div", {
+    style: {
+      position: "absolute", left: x, top: y, transform: "translate(-50%,-100%)",
+      background: COLORS.navy, color: "#fff", borderRadius: 7,
+      padding: "5px 9px", fontSize: "0.71rem", fontWeight: 700,
+      whiteSpace: "nowrap", pointerEvents: "none", zIndex: 5,
+      boxShadow: "0 4px 12px rgba(11,30,61,0.25)",
+      animation: "chartTooltipIn 0.15s ease", marginTop: -8
+    }
+  }, children);
+}
+
+/* ── Tiny inline trend sparkline (no axes — last N days at a glance). ── */
+function MiniSparkline({ values, color, width = 56, height = 18 }) {
+  const max = Math.max(...values, 1);
+  const min = Math.min(0, ...values);
+  const range = Math.max(max - min, 1);
+  const pts = values.map((v, i) => ({
+    x: (i / Math.max(values.length - 1, 1)) * width,
+    y: height - ((v - min) / range) * height
+  }));
+  const d = pts.map((p, i) => `${i === 0 ? "M" : "L"}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ");
+  const lineRef = useDrawPath(d);
+  const last = pts[pts.length - 1];
+  return React.createElement("svg", { width, height, style: { display: "block", overflow: "visible", flexShrink: 0 } },
+    pts.length > 1 && React.createElement("path", {
+      ref: lineRef, d, fill: "none", stroke: color, strokeWidth: "1.6",
+      strokeLinecap: "round", strokeLinejoin: "round"
+    }),
+    last && React.createElement("circle", { cx: last.x.toFixed(1), cy: last.y.toFixed(1), r: "2", fill: color })
+  );
+}
+
+/* ── ↑ / ↓ percentage badge for summary-card trends. ── */
+function TrendBadge({ pct }) {
+  if (pct === null || pct === undefined) {
+    return React.createElement("span", { style: { fontSize: "0.68rem", color: COLORS.slate, fontWeight: 600 } }, "—");
+  }
+  const isFlat = pct === 0;
+  const isUp = pct > 0;
+  const color = isFlat ? COLORS.slate : isUp ? COLORS.success : COLORS.danger;
+  const arrow = isFlat ? "→" : isUp ? "↑" : "↓";
+  return React.createElement("span", {
+    style: { display: "inline-flex", alignItems: "center", gap: 2, fontSize: "0.74rem", fontWeight: 800, color }
+  }, `${arrow} ${Math.abs(pct)}%`);
+}
+
+/* ── A single live summary card: animated count, icon, sparkline + trend. ── */
+function SummaryCard({ icon, label, value, color, trend, sparkline, cardStyle }) {
+  const animatedValue = useCountUp(value);
+  return React.createElement("div", {
+    style: { ...cardStyle, position: "relative", overflow: "hidden", cursor: "default" }
+  },
+    React.createElement("div", {
+      style: { position: "absolute", top: -16, right: -16, width: 64, height: 64, borderRadius: "50%", background: color, opacity: 0.08 }
+    }),
+    React.createElement("div", {
+      style: { width: 32, height: 32, borderRadius: 9, background: color + "18", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }
+    },
+      React.createElement(Icon, { name: icon, size: 16, color })
+    ),
+    React.createElement("div", {
+      style: { fontSize: "1.75rem", fontWeight: 800, color: COLORS.navy, lineHeight: 1, marginBottom: 4 }
+    }, animatedValue),
+    React.createElement("div", {
+      style: { fontSize: "0.72rem", fontWeight: 700, color: COLORS.slate, textTransform: "uppercase", letterSpacing: "0.05em" }
+    }, label),
+    React.createElement("div", {
+      style: { display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 10, paddingTop: 9, borderTop: "1px solid #F0F3FA" }
+    },
+      React.createElement(MiniSparkline, { values: sparkline, color }),
+      React.createElement(TrendBadge, { pct: trend ? trend.pct : null })
+    ),
+    trend && React.createElement("div", {
+      style: { fontSize: "0.63rem", color: COLORS.slate, marginTop: 3, textAlign: "right" }
+    }, trend.label)
+  );
+}
+
 function MiniLineChart({ data, color = COLORS.royal, area = false, height = 90, label = "" }) {
   const W = 400, H = height;
   const pad = { t: 8, r: 8, b: 24, l: 32 };
@@ -6096,13 +6240,19 @@ function MiniLineChart({ data, color = COLORS.royal, area = false, height = 90, 
     y: pad.t + ch - (d.v / max) * ch
   }));
   const linePath = pts.map((p, i) => `${i === 0 ? "M" : "L"}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ");
-  const areaPath = linePath + ` L${pts[pts.length - 1].x.toFixed(1)},${(pad.t + ch).toFixed(1)} L${pts[0].x.toFixed(1)},${(pad.t + ch).toFixed(1)} Z`;
+  const areaPath = pts.length > 0
+    ? linePath + ` L${pts[pts.length - 1].x.toFixed(1)},${(pad.t + ch).toFixed(1)} L${pts[0].x.toFixed(1)},${(pad.t + ch).toFixed(1)} Z`
+    : "";
   const uid = label.replace(/\s+/g, "") + color.replace("#", "");
-  return React.createElement("div", { style: { width: "100%", overflowX: "hidden" } },
+  const lineRef = useDrawPath(linePath);
+  const [hover, setHover] = useState(null); // hovered/tapped index, or null
+
+  return React.createElement("div", { style: { width: "100%", overflowX: "hidden", position: "relative" } },
     React.createElement("svg", {
       viewBox: `0 0 ${W} ${H}`,
       style: { width: "100%", height: H, display: "block" },
-      preserveAspectRatio: "none"
+      preserveAspectRatio: "none",
+      onMouseLeave: () => setHover(null)
     },
       area && React.createElement("defs", null,
         React.createElement("linearGradient", { id: `ag-${uid}`, x1: "0", y1: "0", x2: "0", y2: "1" },
@@ -6136,17 +6286,41 @@ function MiniLineChart({ data, color = COLORS.royal, area = false, height = 90, 
       area && pts.length > 1 && React.createElement("path", {
         d: areaPath, fill: `url(#ag-${uid})`, stroke: "none"
       }),
-      // Line
+      // Line (animates in via stroke-dashoffset whenever its shape changes)
       pts.length > 1 && React.createElement("path", {
-        d: linePath, fill: "none", stroke: color, strokeWidth: "2.2",
+        ref: lineRef, d: linePath, fill: "none", stroke: color, strokeWidth: "2.2",
         strokeLinecap: "round", strokeLinejoin: "round"
       }),
-      // Dots
+      // Invisible hit-zones for hover (desktop) / tap (mobile)
+      pts.map((p, i) => React.createElement("rect", {
+        key: `hit-${i}`,
+        x: (pad.l + (i / Math.max(data.length - 1, 1)) * cw - cw / Math.max(data.length, 1) / 2).toFixed(1),
+        y: 0, width: (cw / Math.max(data.length, 1)).toFixed(1), height: H,
+        fill: "transparent", style: { cursor: "pointer" },
+        onMouseEnter: () => setHover(i),
+        onClick: () => setHover(h => h === i ? null : i),
+        onTouchStart: () => setHover(i)
+      })),
+      // Hover guide line
+      hover !== null && React.createElement("line", {
+        x1: pts[hover].x.toFixed(1), y1: pad.t, x2: pts[hover].x.toFixed(1), y2: (pad.t + ch).toFixed(1),
+        stroke: color, strokeWidth: "1", strokeDasharray: "2,2", opacity: 0.45
+      }),
+      // Dots — pop in on mount, glide smoothly on data refresh
       pts.map((p, i) => React.createElement("circle", {
-        key: i, cx: p.x.toFixed(1), cy: p.y.toFixed(1), r: "3",
-        fill: "#fff", stroke: color, strokeWidth: "2"
+        key: i, cx: p.x.toFixed(1), cy: p.y.toFixed(1),
+        r: hover === i ? "4.5" : "3",
+        fill: hover === i ? color : "#fff", stroke: color, strokeWidth: "2",
+        style: {
+          transition: "cx 0.45s ease, cy 0.45s ease, r 0.2s ease, fill 0.2s ease",
+          animation: "chartDotIn 0.4s ease backwards",
+          animationDelay: `${i * 25}ms`
+        }
       }))
-    )
+    ),
+    hover !== null && React.createElement(ChartTooltip, {
+      x: `${(pts[hover].x / W * 100).toFixed(2)}%`, y: pts[hover].y
+    }, `${data[hover].l}: ${data[hover].v}`)
   );
 }
 
@@ -6166,13 +6340,21 @@ function DualLineChart({ data, series, height = 130, peakIndex = -1 }) {
   }));
   const pathFor = pts => pts.map((p, i) => `${i === 0 ? "M" : "L"}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ");
   const peakX = peakIndex >= 0 ? xAt(peakIndex) : null;
+  const [hover, setHover] = useState(null);
+
+  // This component is used with exactly 2 series (check-in / check-out),
+  // so two fixed hook calls keep this compliant with rules-of-hooks.
+  const lineRef0 = useDrawPath(seriesPts[0] ? pathFor(seriesPts[0].pts) : "");
+  const lineRef1 = useDrawPath(seriesPts[1] ? pathFor(seriesPts[1].pts) : "");
+  const lineRefs = [lineRef0, lineRef1];
 
   return React.createElement("div", { style: { width: "100%" } },
-    React.createElement("div", { style: { width: "100%", overflowX: "hidden" } },
+    React.createElement("div", { style: { width: "100%", overflowX: "hidden", position: "relative" } },
       React.createElement("svg", {
         viewBox: `0 0 ${W} ${H}`,
         style: { width: "100%", height: H, display: "block" },
-        preserveAspectRatio: "none"
+        preserveAspectRatio: "none",
+        onMouseLeave: () => setHover(null)
       },
         // Grid
         [0, 0.25, 0.5, 0.75, 1].map(t => React.createElement("line", {
@@ -6184,14 +6366,14 @@ function DualLineChart({ data, series, height = 130, peakIndex = -1 }) {
           key: `yl-${t}`, x: pad.l - 4, y: (pad.t + ch * (1 - t) + 4).toFixed(1),
           textAnchor: "end", fontSize: "9", fill: COLORS.slate
         }, Math.round(max * t))),
-        // X-axis hour labels — bold the peak hour
+        // X-axis hour labels — bold the peak hour (or the hovered one)
         data.map((d, i) => {
-          if (data.length > 10 && i % 2 !== 0 && i !== data.length - 1 && i !== peakIndex) return null;
+          if (data.length > 10 && i % 2 !== 0 && i !== data.length - 1 && i !== peakIndex && i !== hover) return null;
           return React.createElement("text", {
             key: `xl-${i}`, x: xAt(i).toFixed(1), y: H - 4,
             textAnchor: "middle", fontSize: "8",
-            fill: i === peakIndex ? COLORS.navy : COLORS.slate,
-            fontWeight: i === peakIndex ? "800" : "400"
+            fill: i === peakIndex || i === hover ? COLORS.navy : COLORS.slate,
+            fontWeight: i === peakIndex || i === hover ? "800" : "400"
           }, d.l);
         }),
         // Peak-hour vertical guide line
@@ -6199,24 +6381,48 @@ function DualLineChart({ data, series, height = 130, peakIndex = -1 }) {
           x1: peakX.toFixed(1), y1: pad.t - 6, x2: peakX.toFixed(1), y2: (pad.t + ch).toFixed(1),
           stroke: COLORS.amber, strokeWidth: "1.4", strokeDasharray: "3,3"
         }),
-        // Lines + dots per series
+        // Hover guide line (only when hovering a non-peak hour, to avoid overlap)
+        hover !== null && hover !== peakIndex && React.createElement("line", {
+          x1: xAt(hover).toFixed(1), y1: pad.t, x2: xAt(hover).toFixed(1), y2: (pad.t + ch).toFixed(1),
+          stroke: COLORS.slate, strokeWidth: "1", strokeDasharray: "2,2", opacity: 0.4
+        }),
+        // Lines (animate in via stroke-dashoffset) + dots per series
         seriesPts.map((s, si) => React.createElement(React.Fragment, { key: si },
           s.pts.length > 1 && React.createElement("path", {
-            d: pathFor(s.pts), fill: "none", stroke: s.color, strokeWidth: "2.2",
+            ref: lineRefs[si], d: pathFor(s.pts), fill: "none", stroke: s.color, strokeWidth: "2.2",
             strokeLinecap: "round", strokeLinejoin: "round"
           }),
           s.pts.map((p, i) => React.createElement("circle", {
             key: i, cx: p.x.toFixed(1), cy: p.y.toFixed(1),
-            r: i === peakIndex ? "4.5" : "2.8",
-            fill: i === peakIndex ? s.color : "#fff",
-            stroke: s.color, strokeWidth: i === peakIndex ? "2.5" : "2"
+            r: i === peakIndex || i === hover ? "4.5" : "2.8",
+            fill: i === peakIndex || i === hover ? s.color : "#fff",
+            stroke: s.color, strokeWidth: i === peakIndex || i === hover ? "2.5" : "2",
+            style: {
+              transition: "cx 0.45s ease, cy 0.45s ease, r 0.2s ease, fill 0.2s ease",
+              animation: "chartDotIn 0.4s ease backwards",
+              animationDelay: `${(si * s.pts.length + i) * 20}ms`
+            }
           }))
         )),
+        // Invisible hit-zones for hover (desktop) / tap (mobile) — one per hour, full height
+        data.map((d, i) => React.createElement("rect", {
+          key: `hit-${i}`,
+          x: (xAt(i) - cw / Math.max(data.length, 1) / 2).toFixed(1),
+          y: 0, width: (cw / Math.max(data.length, 1)).toFixed(1), height: H,
+          fill: "transparent", style: { cursor: "pointer" },
+          onMouseEnter: () => setHover(i),
+          onClick: () => setHover(h => h === i ? null : i),
+          onTouchStart: () => setHover(i)
+        })),
         // Peak-hour flag marker
         peakX !== null && React.createElement("text", {
           x: peakX.toFixed(1), y: pad.t - 7, textAnchor: "middle", fontSize: "10"
         }, "🔥")
-      )
+      ),
+      hover !== null && React.createElement(ChartTooltip, {
+        x: `${(xAt(hover) / W * 100).toFixed(2)}%`,
+        y: Math.min(...seriesPts.map(s => s.pts[hover].y))
+      }, `${data[hover].l} · ${series.map(s => `${s.label} ${data[hover][s.key]}`).join(" / ")}`)
     ),
     // Legend
     React.createElement("div", {
@@ -6243,12 +6449,14 @@ function GroupedBarChart({ groups, series, height = 160 }) {
   const max = Math.max(...allVals, 1);
   const gw = cw / groups.length;
   const bw = (gw - 10) / series.length;
+  const [hover, setHover] = useState(null); // hovered group index
 
-  return React.createElement("div", { style: { width: "100%", overflowX: "hidden" } },
+  return React.createElement("div", { style: { width: "100%", overflowX: "hidden", position: "relative" } },
     React.createElement("svg", {
       viewBox: `0 0 ${W} ${H}`,
       style: { width: "100%", height: H, display: "block" },
-      preserveAspectRatio: "none"
+      preserveAspectRatio: "none",
+      onMouseLeave: () => setHover(null)
     },
       // Grid
       [0, 0.25, 0.5, 0.75, 1].map(t => React.createElement("line", {
@@ -6260,7 +6468,13 @@ function GroupedBarChart({ groups, series, height = 160 }) {
         key: `yl-${t}`, x: pad.l - 4, y: (pad.t + ch * (1 - t) + 4).toFixed(1),
         textAnchor: "end", fontSize: "9", fill: COLORS.slate
       }, Math.round(max * t))),
-      // Bars
+      // Hover highlight band behind the active group
+      hover !== null && React.createElement("rect", {
+        x: (pad.l + hover * gw).toFixed(1), y: pad.t,
+        width: gw.toFixed(1), height: ch.toFixed(1),
+        fill: COLORS.royal, opacity: 0.05, rx: "4"
+      }),
+      // Bars — grow in on mount, smoothly resize on data refresh
       groups.map((g, gi) => {
         const gx = pad.l + gi * gw + 5;
         return React.createElement(React.Fragment, { key: gi },
@@ -6268,19 +6482,46 @@ function GroupedBarChart({ groups, series, height = 160 }) {
             const bh = ((g[s.key] || 0) / max) * ch;
             const bx = gx + si * bw;
             const by = pad.t + ch - bh;
+            const bwidth = Math.max(bw - 2, 2);
+            const bheight = Math.max(bh, 1);
             return React.createElement("rect", {
               key: si, x: bx.toFixed(1), y: by.toFixed(1),
-              width: Math.max(bw - 2, 2).toFixed(1), height: Math.max(bh, 1).toFixed(1),
-              fill: s.color, rx: "3"
+              width: bwidth.toFixed(1), height: bheight.toFixed(1),
+              fill: s.color, rx: "3",
+              opacity: hover === null || hover === gi ? 1 : 0.35,
+              style: {
+                transformBox: "fill-box", transformOrigin: "50% 100%",
+                transition: "height 0.45s cubic-bezier(0.4,0,0.2,1), y 0.45s cubic-bezier(0.4,0,0.2,1), opacity 0.2s ease",
+                animation: "chartBarIn 0.5s cubic-bezier(0.34,1.56,0.64,1) backwards",
+                animationDelay: `${(gi * series.length + si) * 35}ms`
+              }
             });
+          }),
+          // Full-height invisible hit-zone for hover/tap on this group
+          React.createElement("rect", {
+            key: `hit-${gi}`, x: (pad.l + gi * gw).toFixed(1), y: 0,
+            width: gw.toFixed(1), height: H, fill: "transparent",
+            style: { cursor: "pointer" },
+            onMouseEnter: () => setHover(gi),
+            onClick: () => setHover(h => h === gi ? null : gi),
+            onTouchStart: () => setHover(gi)
           }),
           React.createElement("text", {
             x: (gx + (gw - 10) / 2).toFixed(1), y: H - 6,
-            textAnchor: "middle", fontSize: "8.5", fill: COLORS.slate
+            textAnchor: "middle", fontSize: "8.5",
+            fill: hover === gi ? COLORS.navy : COLORS.slate,
+            fontWeight: hover === gi ? "800" : "400"
           }, g.label)
         );
       })
-    )
+    ),
+    hover !== null && (() => {
+      const gx = pad.l + hover * gw + 5;
+      const topY = pad.t + ch - Math.max(...series.map(s => ((groups[hover][s.key] || 0) / max) * ch));
+      return React.createElement(ChartTooltip, {
+        x: `${((gx + (gw - 10) / 2) / W * 100).toFixed(2)}%`, y: topY
+      }, `${groups[hover].label} · ${series.map(s => `${s.label || s.key} ${groups[hover][s.key] || 0}`).join(" / ")}`);
+    })()
   );
 }
 
@@ -6293,6 +6534,7 @@ function DonutChart({ slices, size = 140 }) {
     const angle = (sl.value / total) * 2 * Math.PI;
     const x1 = cx + r * Math.cos(cursor);
     const y1 = cy + r * Math.sin(cursor);
+    const startAngle = cursor;
     cursor += angle;
     const x2 = cx + r * Math.cos(cursor);
     const y2 = cy + r * Math.sin(cursor);
@@ -6301,22 +6543,57 @@ function DonutChart({ slices, size = 140 }) {
     const xi2 = cx + innerR * Math.cos(cursor - angle);
     const yi2 = cy + innerR * Math.sin(cursor - angle);
     const large = angle > Math.PI ? 1 : 0;
+    const midAngle = startAngle + angle / 2;
+    const midR = (r + innerR) / 2;
     return {
       d: `M${x1.toFixed(2)},${y1.toFixed(2)} A${r},${r} 0 ${large},1 ${x2.toFixed(2)},${y2.toFixed(2)} L${xi1.toFixed(2)},${yi1.toFixed(2)} A${innerR},${innerR} 0 ${large},0 ${xi2.toFixed(2)},${yi2.toFixed(2)} Z`,
       color: sl.color,
       label: sl.label,
-      value: sl.value
+      value: sl.value,
+      tipX: cx + midR * Math.cos(midAngle),
+      tipY: cy + midR * Math.sin(midAngle)
     };
   });
+  const [hover, setHover] = useState(null);
+
   return React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" } },
-    React.createElement("svg", { width: size, height: size, style: { flexShrink: 0 } },
-      paths.map((p, i) => React.createElement("path", { key: i, d: p.d, fill: p.color, stroke: "#fff", strokeWidth: "2" })),
-      React.createElement("text", { x: cx, y: cy - 6, textAnchor: "middle", fontSize: "14", fontWeight: "800", fill: COLORS.navy }, total),
-      React.createElement("text", { x: cx, y: cy + 12, textAnchor: "middle", fontSize: "8", fill: COLORS.slate }, "TOTAL")
+    React.createElement("div", { style: { position: "relative", flexShrink: 0 } },
+      React.createElement("svg", {
+        width: size, height: size,
+        onMouseLeave: () => setHover(null)
+      },
+        paths.map((p, i) => React.createElement("path", {
+          key: `${i}-${p.value}`, d: p.d, fill: p.color,
+          stroke: "#fff", strokeWidth: hover === i ? "3" : "2",
+          opacity: hover === null || hover === i ? 1 : 0.45,
+          style: {
+            cursor: "pointer", transformBox: "fill-box", transformOrigin: "center",
+            transition: "opacity 0.2s ease, stroke-width 0.2s ease",
+            animation: "chartSliceIn 0.45s ease backwards",
+            animationDelay: `${i * 60}ms`
+          },
+          onMouseEnter: () => setHover(i),
+          onClick: () => setHover(h => h === i ? null : i),
+          onTouchStart: () => setHover(i)
+        })),
+        React.createElement("text", { x: cx, y: cy - 6, textAnchor: "middle", fontSize: "14", fontWeight: "800", fill: COLORS.navy }, total),
+        React.createElement("text", { x: cx, y: cy + 12, textAnchor: "middle", fontSize: "8", fill: COLORS.slate }, "TOTAL")
+      ),
+      hover !== null && React.createElement(ChartTooltip, {
+        x: paths[hover].tipX, y: paths[hover].tipY
+      }, `${paths[hover].label}: ${paths[hover].value} (${Math.round(paths[hover].value / total * 100)}%)`)
     ),
     React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 6 } },
       slices.map((sl, i) => React.createElement("div", {
-        key: i, style: { display: "flex", alignItems: "center", gap: 7, fontSize: "0.76rem" }
+        key: i,
+        style: {
+          display: "flex", alignItems: "center", gap: 7, fontSize: "0.76rem",
+          cursor: "pointer", opacity: hover === null || hover === i ? 1 : 0.45,
+          transition: "opacity 0.2s ease"
+        },
+        onMouseEnter: () => setHover(i),
+        onMouseLeave: () => setHover(null),
+        onClick: () => setHover(h => h === i ? null : i)
       },
         React.createElement("div", { style: { width: 10, height: 10, borderRadius: 3, background: sl.color, flexShrink: 0 } }),
         React.createElement("span", { style: { color: COLORS.slate, fontWeight: 600 } }, sl.label),
@@ -6425,14 +6702,49 @@ function ReportDashboard({ visits, hosts }) {
   const weekAgo         = new Date(now.getTime() - 7 * 86400000);
   const weeklyVisits    = visits.filter(v => v.checkIn >= weekAgo).length;
 
+  /* ── Trend indicators — real comparisons derived straight from visits,
+     no dummy data. Each card gets a meaningful % vs a prior period. ── */
+  const trends = useMemo(() => {
+    const pct = (curr, prev) => prev === 0 ? (curr === 0 ? 0 : 100) : Math.round((curr - prev) / prev * 100);
+    const onDate = dateStr => visits.filter(v => v.checkIn.toDateString() === dateStr).length;
+    const outOnDate = dateStr => visits.filter(v => v.checkOut && v.checkOut.toDateString() === dateStr).length;
+    const activeAt = t => visits.filter(v => v.checkIn <= t && (!v.checkOut || v.checkOut > t)).length;
+
+    const todayStr = now.toDateString();
+    const yestDate = new Date(now.getTime() - 86400000);
+    const yestStr = yestDate.toDateString();
+
+    const newToday = onDate(todayStr);
+    const newYest = onDate(yestStr);
+    const activeNowSnap = activeAt(now);
+    const active24hAgo = activeAt(yestDate);
+    const outToday = outOnDate(todayStr);
+    const outYest = outOnDate(yestStr);
+    const last7 = visits.filter(v => v.checkIn >= new Date(now.getTime() - 7 * 86400000) && v.checkIn <= now).length;
+    const prev7 = visits.filter(v => v.checkIn >= new Date(now.getTime() - 14 * 86400000) && v.checkIn < new Date(now.getTime() - 7 * 86400000)).length;
+
+    // Shared 7-day sparkline (daily new check-ins), color-matched per card on render
+    const sparkline = Array.from({ length: 7 }, (_, i) => onDate(new Date(now.getTime() - (6 - i) * 86400000).toDateString()));
+
+    return {
+      totalVisitors: { pct: pct(newToday, newYest), label: "new today vs yesterday" },
+      checkedIn:     { pct: pct(activeNowSnap, active24hAgo), label: "vs same time yesterday" },
+      checkedOut:    { pct: pct(outToday, outYest), label: "checkouts vs yesterday" },
+      activeNow:     { pct: pct(activeNowSnap, active24hAgo), label: "vs same time yesterday" },
+      todayVisitors: { pct: pct(newToday, newYest), label: "vs yesterday" },
+      weeklyVisitors:{ pct: pct(last7, prev7), label: "vs prior 7 days" },
+      sparkline
+    };
+  }, [visits, tick]);
+
   /* ── Summary cards ── */
   const summaryCards = [
-    { label: "Total Visitors",     value: totalVisitors, icon: "Users",       color: COLORS.royal },
-    { label: "Checked In",         value: checkedIn,     icon: "UserCheck",   color: COLORS.success },
-    { label: "Checked Out",        value: checkedOut,    icon: "ArrowUpRight", color: COLORS.slate },
-    { label: "Active Now",         value: activeNow,     icon: "Clock",       color: COLORS.amber },
-    { label: "Today's Visitors",   value: todayVisits,   icon: "Calendar",    color: COLORS.sky },
-    { label: "Weekly Visitors",    value: weeklyVisits,  icon: "BarChart3",   color: "#7A4FE8" }
+    { label: "Total Visitors",     value: totalVisitors, icon: "Users",       color: COLORS.royal,  trend: trends.totalVisitors,  sparkline: trends.sparkline },
+    { label: "Checked In",         value: checkedIn,     icon: "UserCheck",   color: COLORS.success, trend: trends.checkedIn,      sparkline: trends.sparkline },
+    { label: "Checked Out",        value: checkedOut,    icon: "ArrowUpRight", color: COLORS.slate,  trend: trends.checkedOut,     sparkline: trends.sparkline },
+    { label: "Active Now",         value: activeNow,     icon: "Clock",       color: COLORS.amber,  trend: trends.activeNow,      sparkline: trends.sparkline },
+    { label: "Today's Visitors",   value: todayVisits,   icon: "Calendar",    color: COLORS.sky,    trend: trends.todayVisitors,  sparkline: trends.sparkline },
+    { label: "Weekly Visitors",    value: weeklyVisits,  icon: "BarChart3",   color: "#7A4FE8",     trend: trends.weeklyVisitors, sparkline: trends.sparkline }
   ];
 
   /* ── Hourly chart data (today) — tracks BOTH check-in and check-out counts ── */
@@ -6581,7 +6893,7 @@ function ReportDashboard({ visits, hosts }) {
       )
     ),
 
-    /* ══ SECTION 1: Summary Cards (6 live stats) ══ */
+    /* ══ SECTION 1: Summary Cards (6 live stats — animated count, sparkline + trend) ══ */
     React.createElement("div", {
       style: {
         display: "grid",
@@ -6589,36 +6901,11 @@ function ReportDashboard({ visits, hosts }) {
         gap: 12, marginBottom: 20
       }
     },
-      summaryCards.map((c, i) => React.createElement("div", {
+      summaryCards.map((c, i) => React.createElement(SummaryCard, {
         key: i,
-        style: {
-          ...cardStyle, position: "relative", overflow: "hidden",
-          cursor: "default"
-        }
-      },
-        React.createElement("div", {
-          style: {
-            position: "absolute", top: -16, right: -16, width: 64, height: 64,
-            borderRadius: "50%", background: c.color, opacity: 0.08
-          }
-        }),
-        React.createElement("div", {
-          style: {
-            width: 32, height: 32, borderRadius: 9,
-            background: c.color + "18",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            marginBottom: 10
-          }
-        },
-          React.createElement(Icon, { name: c.icon, size: 16, color: c.color })
-        ),
-        React.createElement("div", {
-          style: { fontSize: "1.75rem", fontWeight: 800, color: C.navy, lineHeight: 1, marginBottom: 4 }
-        }, c.value),
-        React.createElement("div", {
-          style: { fontSize: "0.72rem", fontWeight: 700, color: C.slate, textTransform: "uppercase", letterSpacing: "0.05em" }
-        }, c.label)
-      ))
+        icon: c.icon, label: c.label, value: c.value, color: c.color,
+        trend: c.trend, sparkline: c.sparkline, cardStyle
+      }))
     ),
 
     /* ══ SECTION 2: Date Filter ══ */
@@ -6697,7 +6984,7 @@ function ReportDashboard({ visits, hosts }) {
         chartType === "bar"
           ? React.createElement(GroupedBarChart, {
               groups: filteredLineData.map(d => ({ label: d.l, visitors: d.v })),
-              series: [{ key: "visitors", color: C.royal }],
+              series: [{ key: "visitors", color: C.royal, label: "Visitors" }],
               height: 160
             })
           : React.createElement(MiniLineChart, {
@@ -6757,8 +7044,8 @@ function ReportDashboard({ visits, hosts }) {
         React.createElement(GroupedBarChart, {
           groups: weeklyComparison,
           series: [
-            { key: "lastWeek", color: "#D5DCEA" },
-            { key: "thisWeek", color: C.royal }
+            { key: "lastWeek", color: "#D5DCEA", label: "Last week" },
+            { key: "thisWeek", color: C.royal, label: "This week" }
           ],
           height: 130
         }),
