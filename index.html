@@ -224,6 +224,7 @@ const {
   useState,
   useMemo,
   useEffect,
+  useLayoutEffect,
   useRef
 } = React;
 
@@ -6148,6 +6149,33 @@ function useCountUp(target, duration = 600) {
   return display;
 }
 
+/* ── Measures an element's live rendered pixel width (via ResizeObserver).
+   Chart SVGs use this instead of `preserveAspectRatio: "none"` stretching:
+   feeding the *real* pixel width back into the viewBox keeps 1 viewBox
+   unit === 1 screen pixel on both axes, so circles/rounded corners never
+   get squashed into ellipses when the container is wider or narrower
+   than the chart's nominal design width. ── */
+function useElementWidth(ref, fallback = 400) {
+  const [width, setWidth] = useState(fallback);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const update = () => {
+      const w = el.getBoundingClientRect().width;
+      if (w > 0) setWidth(w);
+    };
+    update();
+    if (typeof ResizeObserver === "undefined") {
+      window.addEventListener("resize", update);
+      return () => window.removeEventListener("resize", update);
+    }
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [ref]);
+  return width;
+}
+
 /* ── Small floating tooltip box, positioned by the caller via style.left/top. ── */
 function ChartTooltip({ x, y, children }) {
   return React.createElement("div", {
@@ -6230,7 +6258,8 @@ function SummaryCard({ icon, label, value, color, trend, sparkline, cardStyle })
 }
 
 function MiniLineChart({ data, color = COLORS.royal, area = false, height = 90, label = "" }) {
-  const W = 400, H = height;
+  const wrapRef = useRef(null);
+  const W = useElementWidth(wrapRef, 400), H = height;
   const pad = { t: 8, r: 8, b: 24, l: 32 };
   const cw = W - pad.l - pad.r;
   const ch = H - pad.t - pad.b;
@@ -6247,11 +6276,10 @@ function MiniLineChart({ data, color = COLORS.royal, area = false, height = 90, 
   const lineRef = useDrawPath(linePath);
   const [hover, setHover] = useState(null); // hovered/tapped index, or null
 
-  return React.createElement("div", { style: { width: "100%", overflowX: "hidden", position: "relative" } },
+  return React.createElement("div", { ref: wrapRef, style: { width: "100%", overflowX: "hidden", position: "relative" } },
     React.createElement("svg", {
       viewBox: `0 0 ${W} ${H}`,
       style: { width: "100%", height: H, display: "block" },
-      preserveAspectRatio: "none",
       onMouseLeave: () => setHover(null)
     },
       area && React.createElement("defs", null,
@@ -6327,7 +6355,8 @@ function MiniLineChart({ data, color = COLORS.royal, area = false, height = 90, 
 /* Dual-series line chart (e.g. Check-in vs Check-out) with legend and
    an optional "peak hour" highlight — vertical marker + flagged dot. */
 function DualLineChart({ data, series, height = 130, peakIndex = -1 }) {
-  const W = 400, H = height;
+  const wrapRef = useRef(null);
+  const W = useElementWidth(wrapRef, 400), H = height;
   const pad = { t: 18, r: 8, b: 24, l: 30 };
   const cw = W - pad.l - pad.r;
   const ch = H - pad.t - pad.b;
@@ -6349,11 +6378,10 @@ function DualLineChart({ data, series, height = 130, peakIndex = -1 }) {
   const lineRefs = [lineRef0, lineRef1];
 
   return React.createElement("div", { style: { width: "100%" } },
-    React.createElement("div", { style: { width: "100%", overflowX: "hidden", position: "relative" } },
+    React.createElement("div", { ref: wrapRef, style: { width: "100%", overflowX: "hidden", position: "relative" } },
       React.createElement("svg", {
         viewBox: `0 0 ${W} ${H}`,
         style: { width: "100%", height: H, display: "block" },
-        preserveAspectRatio: "none",
         onMouseLeave: () => setHover(null)
       },
         // Grid
@@ -6441,7 +6469,8 @@ function DualLineChart({ data, series, height = 130, peakIndex = -1 }) {
 
 /* Grouped bar chart rendered as inline SVG */
 function GroupedBarChart({ groups, series, height = 160 }) {
-  const W = 500, H = height;
+  const wrapRef = useRef(null);
+  const W = useElementWidth(wrapRef, 500), H = height;
   const pad = { t: 8, r: 8, b: 28, l: 32 };
   const cw = W - pad.l - pad.r;
   const ch = H - pad.t - pad.b;
@@ -6451,11 +6480,10 @@ function GroupedBarChart({ groups, series, height = 160 }) {
   const bw = (gw - 10) / series.length;
   const [hover, setHover] = useState(null); // hovered group index
 
-  return React.createElement("div", { style: { width: "100%", overflowX: "hidden", position: "relative" } },
+  return React.createElement("div", { ref: wrapRef, style: { width: "100%", overflowX: "hidden", position: "relative" } },
     React.createElement("svg", {
       viewBox: `0 0 ${W} ${H}`,
       style: { width: "100%", height: H, display: "block" },
-      preserveAspectRatio: "none",
       onMouseLeave: () => setHover(null)
     },
       // Grid
