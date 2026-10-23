@@ -489,7 +489,7 @@ function Icon({
 
 /* ---------- Design tokens ---------- */
 /* ====== Google Sheets Backend Config ====== */
-const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwm2L_LtSZHmCL1DEZnuCdj6i1bes-5XPA3uBdlOo2k68U8PCOg6ZbuNlhLfibsogyc/exec";
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwRM3Z5iB2otqT7QkEcfXzcRnfJZ9-8VqwtVMHYQD5BY65hEo1L4f7bJDx9pSeXgLBm/exec";
 const SHEETS_API_KEY = "PRAC-2026-POONA-SAGAR-DEV"; // must match API_KEY in your Apps Script
 
 async function apiGet(type) {
@@ -1403,6 +1403,41 @@ function CheckInPage({
   const [error, setError] = useState("");
   const [autoFilled, setAutoFilled] = useState(false);
   const [returningVisitor, setReturningVisitor] = useState(null);
+  const [nameFocus, setNameFocus] = useState(false);
+
+  /* ── Name search suggestions (unique visitors by phone) ── */
+  const nameMatches = useMemo(() => {
+    const q = form.name.trim().toLowerCase();
+    if (q.length < 2 || form.phone.length === 10) return [];
+    const seen = new Map();
+    [...allVisits].sort((a, b) => b.checkIn - a.checkIn).forEach(v => {
+      const ph = String(v.phone || "").replace(/\D/g, "").slice(-10);
+      if (ph.length !== 10 || seen.has(ph)) return;
+      if (String(v.name || "").toLowerCase().includes(q)) seen.set(ph, { ...v, _ph: ph });
+    });
+    return [...seen.values()].slice(0, 5);
+  }, [form.name, form.phone, allVisits]);
+
+  /* ── Visit history of the typed / selected mobile number ── */
+  const visitHistory = useMemo(() => {
+    if (form.phone.length !== 10) return [];
+    return allVisits
+      .filter(v => String(v.phone || "").replace(/\D/g, "").slice(-10) === form.phone)
+      .sort((a, b) => b.checkIn - a.checkIn);
+  }, [form.phone, allVisits]);
+
+  function pickSuggestion(v) {
+    setForm(f => ({
+      ...f,
+      name: v.name || f.name,
+      phone: v._ph,
+      email: v.email || "",
+      address: v.address || "",
+      idType: v.idType || "",
+      idNumber: v.idNumber || ""
+    }));
+    setNameFocus(false);
+  }
 
   /* ── Feature 1: Returning Visitor Auto-fill ── */
   useEffect(() => {
@@ -1528,7 +1563,26 @@ function CheckInPage({
     name: "UserCheck",
     size: 17,
     style: { marginTop: 1, flexShrink: 0 }
-  }), "\uD83D\uDD01 Returning visitor detected — form auto-filled from last visit on " + fmtDate(returningVisitor.checkIn) + ". Please verify details."), isBlacklisted && /*#__PURE__*/React.createElement("div", {
+  }), "\uD83D\uDD01 Returning visitor detected — form auto-filled from last visit on " + fmtDate(returningVisitor.checkIn) + ". Please verify details."), visitHistory.length > 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "#fff", border: "1px solid #E1E7F2", borderRadius: 12,
+      padding: "12px 14px", marginBottom: 16
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: { fontWeight: 700, fontSize: "0.86rem", color: COLORS.navy, marginBottom: 8 }
+  }, "Previous visits (" + visitHistory.length + ")"), visitHistory.slice(0, 5).map(v => {
+    const t = VISIT_TYPES.find(x => x.id === v.type);
+    const h = hosts.find(x => x.id === v.hostId);
+    return /*#__PURE__*/React.createElement("div", {
+      key: v.id,
+      style: { padding: "7px 0", borderTop: "1px solid #EEF1F7", fontSize: "0.8rem", color: COLORS.navy }
+    }, /*#__PURE__*/React.createElement("div", { style: { fontWeight: 600 } },
+      fmtDate(v.checkIn) + " · " + fmtTime(v.checkIn) + (t ? " · " + t.label : "")),
+    /*#__PURE__*/React.createElement("div", { style: { color: COLORS.slate } },
+      (v.purpose || "—") + (h ? " · to meet " + h.name : "")));
+  }), visitHistory.length > 5 && /*#__PURE__*/React.createElement("div", {
+    style: { fontSize: "0.74rem", color: COLORS.slate, marginTop: 6 }
+  }, "+ " + (visitHistory.length - 5) + " more in Visit History")), isBlacklisted && /*#__PURE__*/React.createElement("div", {
     style: {
       background: "rgba(214,69,69,0.08)",
       border: "1px solid rgba(214,69,69,0.25)",
@@ -1569,16 +1623,33 @@ function CheckInPage({
       gridTemplateColumns: "1fr 1fr",
       gap: 14
     }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: { position: "relative" }
   }, /*#__PURE__*/React.createElement(TextField, {
     label: "Full Name",
     required: true,
     placeholder: "Enter full name",
     value: form.name,
+    autoComplete: "off",
+    onFocus: () => setNameFocus(true),
+    onBlur: () => setTimeout(() => setNameFocus(false), 150),
     onChange: e => setForm({
       ...form,
       name: e.target.value
     })
-  }), /*#__PURE__*/React.createElement(TextField, {
+  }), nameFocus && nameMatches.length > 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "absolute", left: 0, right: 0, top: "calc(100% - 14px)", zIndex: 30,
+      background: "#fff", border: "1px solid rgba(30,79,217,0.25)", borderRadius: 10,
+      boxShadow: "0 8px 24px rgba(11,30,61,0.15)", overflow: "hidden"
+    }
+  }, nameMatches.map(m => /*#__PURE__*/React.createElement("div", {
+    key: m._ph,
+    onMouseDown: e => { e.preventDefault(); pickSuggestion(m); },
+    style: { padding: "9px 12px", cursor: "pointer", borderBottom: "1px solid #EEF1F7", fontSize: "0.85rem" }
+  }, /*#__PURE__*/React.createElement("div", { style: { fontWeight: 700, color: COLORS.navy } }, m.name),
+  /*#__PURE__*/React.createElement("div", { style: { color: COLORS.slate, fontSize: "0.76rem" } },
+    m.phone + (m.company && m.company !== "—" ? " · " + m.company : "") + " · last visit " + fmtDate(m.checkIn)))))), /*#__PURE__*/React.createElement(TextField, {
     label: "Mobile Number",
     required: true,
     placeholder: "10-digit mobile number",
